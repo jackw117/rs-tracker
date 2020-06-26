@@ -1,0 +1,14 @@
+{
+  "name": "rs-tracker",
+  "version": "1.0.0",
+  "description": "Goal tracker for RuneScape",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron ."
+  },
+  "author": "Jack Whitesell",
+  "license": "ISC",
+  "devDependencies": {
+    "electron": "^9.0.5"
+  }
+}
