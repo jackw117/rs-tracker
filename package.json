@@ -1,15 +1,14 @@
 {
   "name": "rs-tracker",
-  "productName": "Electron boilerplate with sqlite",
-  "description": "Starter for your electron + sqlite application",
-  "version": "1.0.0",
-  "author": "Kolley Kibber <kolley.kibber@example.com>",
-  "copyright": "© 2016, Kibber Ltd.",
-  "homepage": "http://example.com",
+  "productName": "RuneScape Goal Tracker",
+  "description": "Application designed to be used with RuneScape to keep track of goals",
+  "version": "0.0.1",
+  "author": "Jack Whitesell <me@jackwhitesell.com>",
+  "homepage": "http://jackwhitesell.com",
   "license": "MIT",
   "main": "app/app.js",
   "build": {
-    "appId": "com.example.electron-boilerplate-sqlite",
+    "appId": "com.example.rs-tracker",
     "files": [
       "app/**/*",
       "node_modules/**/*",
@@ -24,12 +23,10 @@
   },
   "dependencies": {
     "electron-db": "^1.0.0",
-    "jquery": "^3.5.1",
-    "react": "^16.13.1",
-    "sqlite3": "^4.0.9"
+    "jquery": "^3.5.1"
   },
   "devDependencies": {
-    "electron": "^5.0.13",
-    "electron-builder": "^21.0.15"
+    "electron": "^9.1.0",
+    "electron-builder": "^22.7.0"
   }
 }
