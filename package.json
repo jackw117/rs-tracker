@@ -1,5 +1,5 @@
 {
-  "name": "electron-boilerplate-sqlite",
+  "name": "rs-tracker",
   "productName": "Electron boilerplate with sqlite",
   "description": "Starter for your electron + sqlite application",
   "version": "1.0.0",
@@ -23,10 +23,13 @@
     "release": "build"
   },
   "dependencies": {
+    "electron-db": "^1.0.0",
+    "jquery": "^3.5.1",
+    "react": "^16.13.1",
     "sqlite3": "^4.0.9"
   },
   "devDependencies": {
-    "electron": "^5.0.6",
+    "electron": "^5.0.13",
     "electron-builder": "^21.0.15"
   }
 }

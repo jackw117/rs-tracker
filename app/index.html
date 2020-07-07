@@ -1,34 +1,38 @@
 <!DOCTYPE html>
 <html>
   <head>
+    <link rel="stylesheet" type="text/css" href="style.css">
+    <script>if (typeof module === 'object') {window.module = module; module = undefined;}</script>
+    <script src="../node_modules/jquery/dist/jquery.min.js"></script>
+    <script src="functions.js"></script>
+    <script>if (window.module) module = window.module;</script>
   </head>
   <body>
-    <h1>electron-boilerplate-sqlite</h1>
-    <ul id="database">
-    </ul>
-    <script>
-      var sqlite3 = require('sqlite3').verbose();
-      var db = new sqlite3.Database(':memory:');
+    <h1>Goals</h1>
 
-      db.serialize(function() {
-        db.run("CREATE TABLE lorem (info TEXT)");
+    <div class="addNew">
+      <label for="add">
+        Add
+        <input type="button" name="add" id="add">
+      </label>
+    </div>
 
-        var stmt = db.prepare("INSERT INTO lorem VALUES (?)");
-        for (var i = 0; i < 10; i++) {
-          stmt.run("Ipsum " + i);
-        }
+    <div class="newType">
+      <label for="skillText">Title</label>
+      <input type="text" id="skillText" name="skillText">
+      <br></br>
 
-        stmt.finalize();
+      <label for="require">Requirements</label>
+      <select name="require" id="require">
+        <option value="none">None</option>
+      </select>
+      <input type="button" name="reqButton" id="reqButton">
+      <div id="currentReqs"></div>
+      <br></br>
 
-        var rows = document.getElementById("database");
-        db.each("SELECT rowid AS id, info FROM lorem", function(err, row) {
-          var item = document.createElement("li");
-          item.textContent = "" + row.id + ": " + row.info;
-          rows.appendChild(item);
-        });
-      });
+      <input type="button" name="skill" id="skill">
+    </div>
 
-      db.close();
-    </script>
+    <div id="database"></div>
   </body>
 </html>
