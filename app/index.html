@@ -1,38 +1,45 @@
 <!DOCTYPE html>
 <html>
   <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
     <link rel="stylesheet" type="text/css" href="style.css">
+    <link rel="stylesheet" href="../node_modules/bulma/css/bulma.min.css">
     <script>if (typeof module === 'object') {window.module = module; module = undefined;}</script>
     <script src="../node_modules/jquery/dist/jquery.min.js"></script>
     <script src="functions.js"></script>
     <script>if (window.module) module = window.module;</script>
   </head>
   <body>
-    <h1>Goals</h1>
 
-    <div class="addNew">
-      <label for="add">
-        Add
-        <input type="button" name="add" id="add">
-      </label>
+    <div>
+      <h1 class="is-size-4">Goals</h1>
+      <div class="addNew ">
+          <input type="button" class="button is-primary" name="add" id="add" value="Add">
+      </div>
     </div>
 
     <div class="newType">
       <label for="skillText">Title</label>
-      <input type="text" id="skillText" name="skillText">
+      <input type="text" id="skillText" name="skillText" class="input is-primary">
+
+      <div id="reqDiv">
+
+          <label for="require">Requirements</label>
+          <div class="select is-primary">
+            <select name="require" id="require">
+              <option value="none">None</option>
+            </select>
+          </div>
+
+        <input type="button" name="reqButton" id="reqButton" class="button is-primary" value="Add">
+        <div id="currentReqs"></div>
+      </div>
       <br></br>
 
-      <label for="require">Requirements</label>
-      <select name="require" id="require">
-        <option value="none">None</option>
-      </select>
-      <input type="button" name="reqButton" id="reqButton">
-      <div id="currentReqs"></div>
-      <br></br>
-
-      <input type="button" name="skill" id="skill">
+      <input type="button" name="skill" id="skill" class="button is-primary" value="Add">
     </div>
 
-    <div id="database"></div>
+    <div id="database" class="section"></div>
   </body>
 </html>

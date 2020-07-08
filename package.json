@@ -22,6 +22,7 @@
     "release": "build"
   },
   "dependencies": {
+    "bulma": "^0.9.0",
     "electron-db": "^1.0.0",
     "jquery": "^3.5.1"
   },
