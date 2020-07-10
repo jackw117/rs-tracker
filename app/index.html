@@ -7,7 +7,8 @@
     <link rel="stylesheet" href="../node_modules/bulma/css/bulma.min.css">
     <script>if (typeof module === 'object') {window.module = module; module = undefined;}</script>
     <script src="../node_modules/jquery/dist/jquery.min.js"></script>
-    <script src="functions.js"></script>
+    <script src="goals.js"></script>
+    <script src="timers.js"></script>
     <script>if (window.module) module = window.module;</script>
   </head>
   <body>
@@ -40,6 +41,16 @@
       <input type="button" name="skill" id="skill" class="button is-primary" value="Add">
     </div>
 
-    <div id="database" class="section"></div>
+    <div id="database" class="section">
+      <div id="currentList"></div>
+      <div id="futureList"></div>
+    </div>
+
+    <div>
+      <input type="text" id="timerTitle" name="timerTitle" class="input is-primary">
+      <input type="time" id="timerTime" name="timerTime" class="input is-primary">
+      <textarea id="timerDesc" name="timerDesc" rows="4" cols="50" placeholder="Description of timer"></textarea>
+      <input type="button" name="timerButton" id="timerButton" class="button is-primary" value="Add">
+    </div>
   </body>
 </html>

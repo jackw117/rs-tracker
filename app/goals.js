@@ -23,10 +23,11 @@ $(document).ready(function() {
     reqs = reqs + "</ul>";
     var title = "<p>" + element.title + "</p>";
     var edit = "<input type='button' class='editButton button is-danger' value='Edit'>";
+    var deleteButton = "<button class='delete deleteButton'></button>";
     $("<div class='notification is-link is-light goal'>" +
         "<h1 class='title is-uppercase is-size-5'>" + title + "</h1>" +
         "<p class='subtitle is-uppercase is-size-6'>" + reqs + "</p>" +
-        edit + "</div>").appendTo("#database");
+        edit + deleteButton + "</div>").appendTo("#database");
 
     addRequirements(element, "#require");
   }
@@ -36,6 +37,7 @@ $(document).ready(function() {
     $("<option value='"+element.title+"'>"+element.title+"</option>").appendTo(where);
   }
 
+  //updates the parent/require array of an element
   //true for parent, false for requirement
   function updateArray(element, newTitle, type) {
     console.log(element);
@@ -66,11 +68,7 @@ $(document).ready(function() {
   newObject();
 
   //creates the goals table if it doesn't already exist
-  db.createTable(tableName, (succ, msg) => {
-    // succ - boolean, tells if the call is successful
-    console.log("Success: " + succ);
-    console.log("Message: " + msg);
-  });
+  db.createTable(tableName, (succ, msg) => {});
 
   //display all current goals
   db.getAll(tableName, (succ, data) => {
@@ -91,10 +89,41 @@ $(document).ready(function() {
     $(reqs).appendTo($(this).parent());
     db.getAll(tableName, (succ, data) => {
       data.forEach(function(element) {
-        //fix for multiple edits being open at once
+        // TODO: fix for multiple edits being open at once (multiple goals and same goal)
         addRequirements(element, "#requireEdit")
       });
     });
+  });
+
+  //remove item from every require/parent array
+  function removeField(selection, type) {
+    db.getField(tableName, type, (succ, data) => {
+      if (succ) {
+        data.forEach(function(element, i) {
+          element = jQuery.grep(element, function(value) {
+            return value != selection;
+          });
+          data[i] = element;
+        });
+        db.getAll(tableName, (succ2, data2) => {
+          data2.forEach(function(element, i) {
+            if (element[type] != data[i]) {
+              var where = {"title": element.title};
+              var set = {[type]: data[i]};
+              db.updateRow(tableName, where, set, (succ, msg) => {});
+            }
+          });
+        });
+      }
+    });
+  }
+
+  //delete goal
+  $(".deleteButton").click(function() {
+    var selection = $(this).siblings("h1").text();
+    removeField(selection, "require");
+    removeField(selection, "parents");
+    db.deleteRow(tableName, {"title": selection}, (succ, msg) => {});
   });
 
   //edit goal
