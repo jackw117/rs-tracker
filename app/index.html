@@ -27,10 +27,8 @@
       <div id="reqDiv">
 
           <label for="require">Requirements</label>
-          <div class="select is-primary">
-            <select name="require" id="require">
-              <option value="none">None</option>
-            </select>
+          <div class="requireDiv select is-primary">
+            <select name="require" class="requireList"></select>
           </div>
 
         <input type="button" name="reqButton" id="reqButton" class="button is-primary" value="Add">
@@ -41,16 +39,16 @@
       <input type="button" name="skill" id="skill" class="button is-primary" value="Add">
     </div>
 
-    <div id="database" class="section">
-      <div id="currentList"></div>
-      <div id="futureList"></div>
+    <div id="database">
+      <div class="section" id="currentList"></div>
+      <div class="section" id="futureList"></div>
     </div>
 
-    <div>
+    <!-- <div>
       <input type="text" id="timerTitle" name="timerTitle" class="input is-primary">
       <input type="time" id="timerTime" name="timerTime" class="input is-primary">
       <textarea id="timerDesc" name="timerDesc" rows="4" cols="50" placeholder="Description of timer"></textarea>
       <input type="button" name="timerButton" id="timerButton" class="button is-primary" value="Add">
-    </div>
+    </div> -->
   </body>
 </html>

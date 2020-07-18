@@ -1,8 +1,10 @@
 $(document).ready(function() {
   //connect to database (JSON file)
   const db = require('electron-db');
-  const { app, BrowserWindow } = require("electron");
   const tableName = "goals";
+
+  //creates the goals table if it doesn't already exist
+  db.createTable(tableName, (succ, msg) => {});
 
   //current goal being created
   var obj;
@@ -14,33 +16,53 @@ $(document).ready(function() {
     obj.parents = new Array();
   }
 
+  newObject();
+
+  //display all current goals
+  function displayAll() {
+    db.getAll(tableName, (succ, data) => {
+      data.forEach(function(element) {
+        appendToDatabase(element);
+      });
+    });
+  }
+
+  displayAll();
+
   //adds a goal to the page
   function appendToDatabase(element) {
     var reqs = "<ul class='reqList subtitle is-size-6 is-uppercase'>";
     element.require.forEach((item, i) => {
       reqs = reqs + "<li>" + item + "</li>";
     });
+    addRequirements(element, ".requireList");
+
+    var databaseName;
+    if (reqs.includes("<li>")) {
+      databaseName = "#futureList"
+    } else {
+      databaseName = "#currentList"
+    }
     reqs = reqs + "</ul>";
     var title = "<p>" + element.title + "</p>";
     var edit = "<input type='button' class='editButton button is-danger' value='Edit'>";
+    var select = "<div style='display:none;' class='editSelect'><input type='button' value='Confirm Edit' class='addReqEdit button is-danger'></div>";
     var deleteButton = "<button class='delete deleteButton'></button>";
     $("<div class='notification is-link is-light goal'>" +
         "<h1 class='title is-uppercase is-size-5'>" + title + "</h1>" +
         "<p class='subtitle is-uppercase is-size-6'>" + reqs + "</p>" +
-        edit + deleteButton + "</div>").appendTo("#database");
+        edit + select + deleteButton + "</div>").appendTo(databaseName);
 
-    addRequirements(element, "#require");
   }
 
   //add new goal to requirements form field
   function addRequirements(element, where) {
-    $("<option value='"+element.title+"'>"+element.title+"</option>").appendTo(where);
+    $("<option value='"+element.title+"'>"+element.title+"</option>").appendTo(where + ":first");
   }
 
   //updates the parent/require array of an element
   //true for parent, false for requirement
   function updateArray(element, newTitle, type) {
-    console.log(element);
     db.getRows(tableName, {
       title: element
     }, (succ, result) => {
@@ -65,17 +87,14 @@ $(document).ready(function() {
     });
   }
 
-  newObject();
 
-  //creates the goals table if it doesn't already exist
-  db.createTable(tableName, (succ, msg) => {});
-
-  //display all current goals
-  db.getAll(tableName, (succ, data) => {
-    data.forEach(function(element) {
-      appendToDatabase(element);
-    });
-  });
+  //refreshes all elements on the page with updated information after an add/edit call
+  function refresh() {
+    $("#currentList").html("");
+    $("#futureList").html("");
+    $(".requireList").html("");
+    displayAll();
+  }
 
   //show the goal form after clicking the add button
   $("#add").click(function() {
@@ -84,15 +103,10 @@ $(document).ready(function() {
   });
 
   //show edit form
-  $(".editButton").click(function() {
-    var reqs = "<div class='editSelect select is-danger'><select id='requireEdit' class='select is-danger'><option value='none'>None</option></select></div><input type='button' id='addReqEdit' value='Confirm Edit' class='button is-danger'>";
-    $(reqs).appendTo($(this).parent());
-    db.getAll(tableName, (succ, data) => {
-      data.forEach(function(element) {
-        // TODO: fix for multiple edits being open at once (multiple goals and same goal)
-        addRequirements(element, "#requireEdit")
-      });
-    });
+  $(document).on("click", ".editButton", function() {
+    $(this).hide();
+    $(".requireDiv:first").clone().prependTo($(this).siblings(".editSelect"));
+    $(this).siblings(".editSelect").show();
   });
 
   //remove item from every require/parent array
@@ -119,25 +133,29 @@ $(document).ready(function() {
   }
 
   //delete goal
-  $(".deleteButton").click(function() {
+  $(document).on("click", ".deleteButton", function() {
     var selection = $(this).siblings("h1").text();
     removeField(selection, "require");
     removeField(selection, "parents");
     db.deleteRow(tableName, {"title": selection}, (succ, msg) => {});
+    refresh();
   });
 
   //edit goal
-  $(".goal").on("click", "#addReqEdit", function() {
-    var selection = $(this).siblings(".editSelect").find("option:selected").val();
-    var current = $(this).parent(".goal").find("h1").text();
+  $(document).on("click", ".addReqEdit", function() {
+    var selection = $(this).siblings(".requireDiv").find("option:selected").val();
+    console.log(selection);
+    var current = $(this).parents(".goal").find("h1").text();
+    console.log(current);
     $("<li>" + selection + "</li>").appendTo($(this).parent(".goal").find(".reqList"));
     updateArray(current, selection, false);
     updateArray(selection, current, true);
+    refresh();
   });
 
   //add currently selected requirement to the list and display on page
   $("#reqButton").click(function() {
-    var selection = $("#require").val();
+    var selection = $(".requireList:first").val();
     $("<p>" + selection + "</p>").appendTo("#currentReqs");
     obj.require.push(selection);
   });
@@ -157,7 +175,6 @@ $(document).ready(function() {
         $("#currentReqs").html("");
       }
     });
-
     newObject();
   });
 });

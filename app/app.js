@@ -4,7 +4,7 @@ const app = electron.app;
 
 var BrowserWindow = electron.BrowserWindow;
 
-let mainWindow;
+//const mainWindow;
 
 app.on('window-all-closed', function () {
   app.quit();
@@ -18,7 +18,8 @@ app.on('ready', function () {
     width: 1200,
     height: 900,
     webPreferences: {
-      nodeIntegration: true
+      nodeIntegration: true,
+      enableRemoteModule: false
     }
   });
 
