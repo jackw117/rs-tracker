@@ -1,3 +1,5 @@
+
+
 $(document).ready(function() {
   //connect to database (JSON file)
   const db = require('electron-db');
@@ -49,9 +51,8 @@ $(document).ready(function() {
     var select = "<div style='display:none;' class='editSelect'><input type='button' value='Confirm Edit' class='addReqEdit button is-danger'></div>";
     var deleteButton = "<button class='delete deleteButton'></button>";
     $("<div class='notification is-link is-light goal'>" +
-        "<h1 class='title is-uppercase is-size-5'>" + title + "</h1>" +
-        "<p class='subtitle is-uppercase is-size-6'>" + reqs + "</p>" +
-        edit + select + deleteButton + "</div>").appendTo(databaseName);
+        "<h1 class='title is-uppercase is-size-5'>" + title + "</h1>"
+        + reqs + edit + select + deleteButton + "</div>").appendTo(databaseName);
 
   }
 
@@ -92,7 +93,7 @@ $(document).ready(function() {
   function refresh() {
     $("#currentList").html("");
     $("#futureList").html("");
-    $(".requireList").html("");
+    $(".requireList:first").html("");
     displayAll();
   }
 
@@ -177,4 +178,39 @@ $(document).ready(function() {
     });
     newObject();
   });
+
+  function displayAll2() {
+    var list = new Array();
+    db.getAll(tableName, (succ, data) => {
+      data.forEach(function(element) {
+        list.push(e(Goal, {title: element.title, reqs: element.require}, null));
+      });
+    });
+    return list;
+  }
+
+  ReactDOM.render(
+  		displayAll2(),
+  		document.getElementById("reactList")
+  	);
 });
+
+const e = React.createElement;
+
+class Goal extends React.Component {
+  render() {
+
+    return e('div', {className: 'notification is-link is-light goal'},
+              e('h1', {className: 'title is-uppercase is-size-5'}, `${this.props.title}`),
+              e('ul', {className: 'reqList subtitle is-size-6 is-uppercase'}, null)
+            );
+  }
+}
+
+// function Goal(props) {
+//   return (
+//     <div className='notification is-link is-light goal'>
+//       <h1 className='title is-uppercase is-size-5'>{props.title}</h1>
+//     </div>
+//   );
+// }
