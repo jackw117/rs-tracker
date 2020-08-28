@@ -5,13 +5,8 @@
 
     <link rel="stylesheet" type="text/css" href="style.css">
     <link rel="stylesheet" href="../node_modules/bulma/css/bulma.min.css">
-    <script>if (typeof module === 'object') {window.module = module; module = undefined;}</script>
-    <script src="../node_modules/jquery/dist/jquery.min.js"></script>
-    <script src="../node_modules/react/umd/react.development.js"></script>
-    <script src="../node_modules/react-dom/umd/react-dom.development.js"></script>
     <script src="goals.js"></script>
     <script src="timers.js"></script>
-    <script>if (window.module) module = window.module;</script>
 
   </head>
   <body>
@@ -31,7 +26,7 @@
 
           <label for="require">Requirements</label>
           <div class="requireDiv select is-primary">
-            <select name="require" class="requireList"></select>
+            <select name="require" id="requireList"></select>
           </div>
 
         <input type="button" name="reqButton" id="reqButton" class="button is-primary" value="Add">
@@ -45,7 +40,6 @@
     <div id="database">
       <div class="section" id="currentList"></div>
       <div class="section" id="futureList"></div>
-      <div class="section" id="reactList"></div>
     </div>
 
     <!-- <div>

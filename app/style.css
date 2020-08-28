@@ -2,6 +2,10 @@ body {
   padding: 10px;
 }
 
+.hidden {
+  display: none;
+}
+
 .newType {
   display: none;
 }
