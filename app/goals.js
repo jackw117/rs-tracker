@@ -1,11 +1,27 @@
 const react = require('react');
 const rd = require('react-dom');
 const $ = require('jquery');
+const db = require('electron-db');
+var sqlite3 = require('sqlite3').verbose();
+var db2 = new sqlite3.Database('goals.db');
+
+const e = react.createElement;
 
 $(document).ready(function() {
   //connect to database (JSON file)
-  const db = require('electron-db');
   const tableName = "goals";
+
+  db2.serialize(function() {
+    db2.run("CREATE TABLE IF NOT EXISTS goals (title TEXT, requires TEXT)");
+
+    // db2.each("SELECT nameid AS id, name FROM names", function(err, row) {
+    //     console.log(row.id + ": " + row.name);
+    // });
+    //
+    // db2.each("SELECT goalid AS id, title FROM goals", function(err, row) {
+    //     console.log(row.id + ": " + row.title);
+    // });
+  });
 
   //creates the goals table if it doesn't already exist
   db.createTable(tableName, (succ, msg) => {});
@@ -34,6 +50,10 @@ $(document).ready(function() {
       });
     });
 
+    db2.each("SELECT title, requires FROM goals", function(err, row) {
+        console.log(row.title + " : " + row.requires);
+    });
+
     rd.render(
       current,
       document.getElementById("currentList")
@@ -54,38 +74,6 @@ $(document).ready(function() {
   //current goal being created
   var obj = newObject();
   displayAll();
-
-  //updates the parent/require array of an element
-  //true for parent, false for requirement
-  function updateArray(element, newTitle, type) {
-    db.getRows(tableName, {
-      title: element
-    }, (succ, result) => {
-      if (succ) {
-        var setArray;
-        var set;
-        var where = {"title": element}
-        if (type) {
-          setArray = result[0].parents;
-          setArray.push(newTitle);
-          set = {"parents": setArray};
-        } else {
-          setArray = result[0].require;
-          setArray.push(newTitle);
-          set = {"require": setArray};
-        }
-        db.updateRow(tableName, where, set, (succ, msg) => {
-          console.log(succ);
-        });
-      }
-    });
-  }
-
-
-  //refreshes all elements on the page with updated information after an add/edit call
-  function refresh() {
-    displayAll();
-  }
 
   //show the goal form after clicking the add button
   $("#add").click(function() {
@@ -129,16 +117,14 @@ $(document).ready(function() {
     removeField(selection, "require");
     removeField(selection, "parents");
     db.deleteRow(tableName, {"title": selection}, (succ, msg) => {});
-    refresh();
+    displayAll();
   });
 
   //edit goal
   $(document).on("click", ".addReqEdit", function() {
-    var selection = $(this).siblings(".requireDiv").find("option:selected").val();
-    var current = $(this).parents(".goal").find("h1").text();
-    updateArray(current, selection, false);
-    updateArray(selection, current, true);
-    refresh();
+    var stmt = db2.prepare("INSERT INTO goals VALUES (?, ?)");
+    stmt.run($(this).parents(".goal").find("h1").text(), $(this).siblings(".requireDiv").find("option:selected").val());
+    displayAll();
   });
 
   //add currently selected requirement to the list and display on page
@@ -150,26 +136,17 @@ $(document).ready(function() {
 
   //add the goal to the database
   $("#skill").click(function() {
-    obj.title = $("#skillText").val();
-    db.insertTableContent(tableName, obj, (succ, msg) => {
-      // succ - boolean, tells if the call is successful
-      if (succ) {
-        obj.require.forEach(function(element) {
-          if (element != "none") {
-            updateArray(element, obj.title, true);
-          }
-        });
-        displayAll();
-        $("#currentReqs").html("");
-        $(".newType").hide();
-        $(".addNew").show();
-      }
+    $("#currentReqs").html("");
+    $(".newType").hide();
+    $(".addNew").show();
+    var stmt = db2.prepare("INSERT INTO goals VALUES (?, ?)");
+    obj.require.forEach(function(element) {
+      stmt.run($("#skillText").val(), element);
     });
+    displayAll();
     newObject();
   });
 });
-
-const e = react.createElement;
 
 class Goal extends react.Component {
   render() {
