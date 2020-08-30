@@ -18,14 +18,16 @@
           <label for="skillText">Title</label>
           <input type="text" id="skillText" name="skillText" class="input is-primary">
 
-          <div id="reqDiv">
+          <div id="addReqDiv">
             <label for="require">Requirements</label>
-            <div class="requireDiv select is-primary">
+            <div class="select is-primary">
               <select name="require" id="requireList"></select>
             </div>
 
             <input type="button" name="reqButton" id="reqButton" class="button is-primary" value="Add Requirement">
-            <h2>Current requirements:</h2>
+          </div>
+          <div>
+            <h3>Current requirements:</h3>
             <ul id="currentReqs">
 
             </ul>
@@ -37,9 +39,24 @@
         </div>
     </div>
 
-    <div id="database">
-      <div class="section" id="currentList"></div>
-      <div class="section" id="futureList"></div>
+
+    <div class="columns">
+      <div class="column"></div>
+      <div class="column is-6">
+        <h2>Current Goals</h2>
+        <div id="currentList"></div>
+      </div>
+      <div class="column"></div>
+    </div>
+
+
+    <div class="columns">
+      <div class="column"></div>
+      <div class="column is-6">
+        <h2>Future Goals</h2>
+        <div id="futureList"></div>
+      </div>
+      <div class="column"></div>
     </div>
 
     <!-- <div>

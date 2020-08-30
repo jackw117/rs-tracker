@@ -1,22 +1,25 @@
 const react = require('react');
 const rd = require('react-dom');
 const $ = require('jquery');
-var sqlite3 = require('sqlite3').verbose();
-var db = new sqlite3.Database('goals.db');
+const sqlite3 = require('sqlite3').verbose();
+const db = new sqlite3.Database('goals.db');
 
 const e = react.createElement;
 
 $(document).ready(function() {
+  //creates the database if it doesn't already exist
   db.serialize(function() {
     db.run("CREATE TABLE IF NOT EXISTS goals (title TEXT, requires TEXT, CONSTRAINT fk_title FOREIGN KEY (title) REFERENCES names(name) ON DELETE CASCADE, CONSTRAINT fk_req FOREIGN KEY (requires) REFERENCES names(name) ON DELETE CASCADE)");
     db.run("CREATE TABLE IF NOT EXISTS names (name TEXT PRIMARY KEY)");
     db.run("PRAGMA foreign_keys = ON");
   });
+
   //creates a new goal object
   function newObject() {
     var o = new Object();
     o.require = new Array();
     o.parents = new Array();
+    o.reqList = new Array();
     return o;
   }
 
@@ -48,10 +51,11 @@ $(document).ready(function() {
           }
         });
         map.forEach(function(value, key) {
+          var reqList2 = reqList.filter(i => i.key !== key && !(value.includes(i.key)) && !map.get(i.key).includes(key));
           if (value.length == 1) {
-            current.push(e(Goal, {key: key, title: key, reqs: [], select: reqList}, null));
+            current.push(e(Goal, {key: key, title: key, reqs: [], select: reqList2}, null));
           } else {
-            future.push(e(Goal, {key: key, title: key, reqs: value.slice(1), select: reqList}, null));
+            future.push(e(Goal, {key: key, title: key, reqs: value.slice(1), select: reqList2}, null));
           }
         });
 
@@ -66,16 +70,24 @@ $(document).ready(function() {
       	);
       });
     });
+    obj = newObject();
+    obj.reqList = reqList;
   }
 
   //current goal being created
-  var obj = newObject();
+  var obj;
   displayAll();
 
   //show the goal form after clicking the add button
   $("#add").click(function() {
     $("#add").hide();
     $(".newType").show();
+    if (obj.reqList.length != 0) {
+      $("#addReqDiv").show();
+    } else {
+      $("#addReqDiv").hide();
+    }
+    $("#skillText").val("");
   });
 
   //cancels adding a new goal to the datbase
@@ -83,6 +95,7 @@ $(document).ready(function() {
     $("#add").show();
     $(".newType").hide();
     $("#currentReqs").html("");
+    displayAll();
   });
 
   //show edit form
@@ -111,8 +124,16 @@ $(document).ready(function() {
   //add currently selected requirement to the list and display on page
   $("#reqButton").click(function() {
     var selection = $("#requireList:first").val();
+    obj.reqList = obj.reqList.filter(i => i.key !== selection);
     $("<li>" + selection + "</li>").appendTo("#currentReqs");
     obj.require.push(selection);
+    rd.render(
+      obj.reqList,
+      document.getElementById("requireList")
+    );
+    if (obj.reqList.length == 0) {
+      $("#addReqDiv").hide();
+    }
   });
 
   //removes a requirement from a goal
@@ -134,22 +155,29 @@ $(document).ready(function() {
   $("#skill").click(function() {
     $("#currentReqs").html("");
     $(".newType").hide();
-    $(".addNew").show();
+    $("#add").show();
+    console.log(obj.require);
+    var stmt;
     db.serialize(function() {
       var value = $("#skillText").val();
-      var stmt = db.prepare("INSERT INTO names VALUES (?)");
-      stmt.run(value)
-      stmt = db.prepare("INSERT INTO goals VALUES (?, ?)");
-      stmt.run(value, null);
-      if (obj.require.length != 0) {
-        stmt = db.prepare("INSERT INTO goals VALUES (?, ?)");
-        obj.require.forEach(function(element) {
-          stmt.run(value, element);
-        });
-      }
+      stmt = db.prepare("INSERT INTO names VALUES (?)");
+      stmt.run(value, function(e) {
+        if (e) {
+          console.log(e);
+          alert("Failed to add goal. New goals must have a unique name.");
+        } else {
+          stmt = db.prepare("INSERT INTO goals VALUES (?, ?)");
+          stmt.run(value, null);
+          if (obj.require.length != 0) {
+            stmt = db.prepare("INSERT INTO goals VALUES (?, ?)");
+            obj.require.forEach(function(element) {
+              stmt.run(value, element);
+            });
+          }
+          displayAll();
+        }
+      });
       stmt.finalize();
-      displayAll();
-      obj = newObject();
     });
   });
 });
@@ -162,19 +190,24 @@ class Goal extends react.Component {
         item, e('input', {className: "removeButton hidden", type: "button", value: "Remove requirement"}, null)
       ));
     });
+    var select = this.props.select.length != 0 ?
+      [e('div', {className: "requireDiv select is-primary", key: "div"}, e('select', {name: "require"}, this.props.select)),
+      e('input', {className: "addReqEdit button is-danger", type: "button", value: "Confirm Edit", key: "input"}, null)]
+      : null;
 
     return e('div', {className: 'notification is-link is-light goal'},
              e('h1', {className: 'title is-uppercase is-size-5'}, `${this.props.title}`),
              e('ul', {className: 'reqList subtitle is-size-6 is-uppercase'}, list),
                e('input', {className: 'editButton button is-danger', type: 'button', value: 'Edit'}, null),
                e('div', {className: "hidden editSelect"},
-                 e('div', {className: "requireDiv select is-primary"},
-                   e('select', {name: "require"}, this.props.select)
-                  ),
-                 e('input', {className: "addReqEdit button is-danger", type: "button", value: "Confirm Edit"}, null),
+                 select,
                  e('input', {className: "cancelButton button is-danger", type: "button", value: "Cancel"}, null)
                 ),
                e('button', {className: "delete deleteButton hidden"}, null)
             );
   }
 }
+
+// work on timers
+// data checks
+//    no loop dependencies
