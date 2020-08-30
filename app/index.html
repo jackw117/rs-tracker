@@ -11,30 +11,30 @@
   </head>
   <body>
 
-    <div>
-      <h1 class="is-size-4">Goals</h1>
-      <div class="addNew ">
-          <input type="button" class="button is-primary" name="add" id="add" value="Add">
-      </div>
-    </div>
+    <div class="section">
+        <input type="button" class="button is-primary" name="add" id="add" value="Add">
 
-    <div class="newType">
-      <label for="skillText">Title</label>
-      <input type="text" id="skillText" name="skillText" class="input is-primary">
+        <div class="newType">
+          <label for="skillText">Title</label>
+          <input type="text" id="skillText" name="skillText" class="input is-primary">
 
-      <div id="reqDiv">
+          <div id="reqDiv">
+            <label for="require">Requirements</label>
+            <div class="requireDiv select is-primary">
+              <select name="require" id="requireList"></select>
+            </div>
 
-          <label for="require">Requirements</label>
-          <div class="requireDiv select is-primary">
-            <select name="require" id="requireList"></select>
+            <input type="button" name="reqButton" id="reqButton" class="button is-primary" value="Add Requirement">
+            <h2>Current requirements:</h2>
+            <ul id="currentReqs">
+
+            </ul>
           </div>
-
-        <input type="button" name="reqButton" id="reqButton" class="button is-primary" value="Add">
-        <div id="currentReqs"></div>
-      </div>
-      <br></br>
-
-      <input type="button" name="skill" id="skill" class="button is-primary" value="Add">
+          <div class="formButtons">
+            <input type="button" name="skill" id="skill" class="button is-primary" value="Add Goal">
+            <input type="button" name="cancel" id="cancel" class="button is-danger" value="Cancel">
+          </div>
+        </div>
     </div>
 
     <div id="database">

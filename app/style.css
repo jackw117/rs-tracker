@@ -2,12 +2,24 @@ body {
   padding: 10px;
 }
 
+label {
+  display: block;
+}
+
+.formButtons {
+  margin-top: 20px;
+}
+
 .hidden {
   display: none;
 }
 
 .newType {
   display: none;
+}
+
+#currentReqs li {
+  margin-left: 20px;
 }
 
 #reqDiv {
