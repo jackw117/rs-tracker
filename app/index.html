@@ -6,7 +6,6 @@
     <link rel="stylesheet" type="text/css" href="style.css">
     <link rel="stylesheet" href="../node_modules/bulma/css/bulma.min.css">
     <script src="goals.js"></script>
-    <script src="timers.js"></script>
 
   </head>
   <body>
@@ -27,7 +26,7 @@
             <input type="button" name="reqButton" id="reqButton" class="button is-primary" value="Add Requirement">
           </div>
           <div>
-            <h3>Current requirements:</h3>
+            <h2>Current requirements:</h2>
             <ul id="currentReqs">
 
             </ul>
@@ -39,11 +38,18 @@
         </div>
     </div>
 
+    <div>
+      <input type="text" id="timerTitle" name="timerTitle" class="input is-primary">
+      <input type="date" id="timerDate" name="timerDate" class="input is-primary">
+      <input type="time" id="timerTime" name="timerTime" class="input is-primary">
+      <input type="button" name="timerButton" id="timerButton" class="button is-primary" value="Add">
+    </div>
+
 
     <div class="columns">
       <div class="column"></div>
       <div class="column is-6">
-        <h2>Current Goals</h2>
+        <h1>Current Goals</h1>
         <div id="currentList"></div>
       </div>
       <div class="column"></div>
@@ -53,17 +59,20 @@
     <div class="columns">
       <div class="column"></div>
       <div class="column is-6">
-        <h2>Future Goals</h2>
+        <h1>Future Goals</h1>
         <div id="futureList"></div>
       </div>
       <div class="column"></div>
     </div>
 
-    <!-- <div>
-      <input type="text" id="timerTitle" name="timerTitle" class="input is-primary">
-      <input type="time" id="timerTime" name="timerTime" class="input is-primary">
-      <textarea id="timerDesc" name="timerDesc" rows="4" cols="50" placeholder="Description of timer"></textarea>
-      <input type="button" name="timerButton" id="timerButton" class="button is-primary" value="Add">
-    </div> -->
+    <div class="columns">
+      <div class="column"></div>
+      <div class="column is-6">
+        <h1>Timers</h1>
+        <div id="timerList"></div>
+      </div>
+      <div class="column"></div>
+    </div>
+
   </body>
 </html>
