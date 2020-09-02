@@ -6,6 +6,7 @@ const db = new sqlite3.Database('goals.db');
 const moment = require('moment')
 
 const e = react.createElement;
+const interval = 1000*60*15
 
 $(document).ready(function() {
   //creates the database if it doesn't already exist
@@ -85,12 +86,16 @@ $(document).ready(function() {
 
   function displayTimers() {
     var timers = [];
+    var now = new Date();
     db.all("SELECT name, time FROM timers", function(err, rows) {
       rows.forEach(function(row) {
         timers.push(e(Timer, {key: row.name, title: row.name, time: row.time}, null));
+        var until = now - new Date(row.time);
+        if (0 <= until && until <= interval) {
+          alert(row.name + " is ready now");
+        }
       });
 
-      console.log(timers);
       timers = timers.filter(i => i != null);
       rd.render(
         timers,
@@ -131,12 +136,23 @@ $(document).ready(function() {
     $(this).siblings(".editSelect").show();
   });
 
-  //delete goal
-  $(document).on("click", ".deleteButton", function() {
-    var stmt = db.prepare("DELETE FROM names WHERE name == (?)");
-    stmt.run($(this).siblings("h2").text());
+  //show edit timer form
+  $(document).on("click", ".editTimer", function() {
+    $(this).parents(".timerInfo").hide();
+    $(this).parents(".timerInfo").siblings(".editDiv").show();
+  });
+
+  function del(x) {
+    var table = x.parents(".column").children("h1").text().includes("Goals") ? "names" : "timers";
+    var stmt = db.prepare("DELETE FROM " + table + " WHERE name == (?)");
+    stmt.run(x.siblings("h2").text());
     stmt.finalize();
-    displayAll();
+    table == "names" ? displayAll() : displayTimers();
+  }
+
+  //delete goal or timer
+  $(document).on("click", ".deleteButton", function() {
+    del($(this));
   });
 
   //add requirement to goal
@@ -145,6 +161,16 @@ $(document).ready(function() {
     stmt.run($(this).parents(".goal").find("h2").text(), $(this).siblings(".requireDiv").find("option:selected").val());
     stmt.finalize();
     displayAll();
+  });
+
+  //edits timer
+  $(document).on("submit", ".editDiv", function() {
+    db.serialize(function() {
+      var stmt = db.prepare("INSERT INTO timers VALUES (?, ?)");
+      stmt.run($(this).parents(".goal").find("h2").text(), $(this).siblings(".requireDiv").find("option:selected").val());
+      stmt.finalize();
+      displayTimers();
+    });
   });
 
   //add currently selected requirement to the list and display on page
@@ -177,6 +203,12 @@ $(document).ready(function() {
     $(this).parents(".notification").find(".editButton").show();
   });
 
+  //cancels editing the timer
+  $(document).on("click", ".editTimerCancel", function() {
+    $(this).parents(".editDiv").hide();
+    $(this).parents(".editDiv").siblings(".timerInfo").show();
+  });
+
   //add the goal to the database
   $("#skill").click(function() {
     $("#currentReqs").html("");
@@ -206,6 +238,7 @@ $(document).ready(function() {
     });
   });
 
+  //adds the timer to the database
   $("#timerButton").click(function() {
     var stmt = db.prepare("INSERT INTO timers VALUES (?, ?)");
     stmt.run($("#timerTitle").val(), $("#timerDate").val() + " " + $("#timerTime").val());
@@ -213,6 +246,7 @@ $(document).ready(function() {
     $("#timerTitle").val("");
     $("#timerDate").val("");
     $("#timerTime").val("");
+    displayTimers();
   });
 
   setInterval(function() {
@@ -225,7 +259,7 @@ $(document).ready(function() {
       }
     });
     displayTimers();
-  }, 900000);
+  }, interval);
 });
 
 class Goal extends react.Component {
@@ -244,12 +278,12 @@ class Goal extends react.Component {
     return e('div', {className: 'notification is-link is-light goal'},
              e('h2', {className: 'title is-uppercase is-size-5'}, `${this.props.title}`),
              e('ul', {className: 'reqList subtitle is-size-6 is-uppercase'}, list),
-               e('input', {className: 'editButton button is-danger', type: 'button', value: 'Edit'}, null),
-               e('div', {className: "hidden editSelect"},
-                 select,
-                 e('input', {className: "cancelButton button is-danger", type: "button", value: "Cancel"}, null)
-                ),
-               e('button', {className: "delete deleteButton hidden"}, null)
+             e('input', {className: 'editButton button is-danger', type: 'button', value: 'Edit'}, null),
+             e('div', {className: "hidden editSelect"},
+               select,
+               e('input', {className: "cancelButton button is-danger", type: "button", value: "Cancel"}, null)
+              ),
+             e('button', {className: "delete deleteButton hidden"}, null)
             );
   }
 }
@@ -261,8 +295,18 @@ class Timer extends react.Component {
 
     return e('div', {className: 'notification is-link is-light timer'},
               e('h2', {className: 'title is-uppercase is-size-5'}, `${this.props.title}`),
-              e('p', {className: 'subtitle is-size-6 time'}, d.toString()),
-              e('p', {className: 'subtitle is-size-6 until'}, u.toString())
+              e('button', {className: "delete deleteButton hidden"}, null),
+              e('div', {className: "timerInfo"},
+                e('p', {className: 'subtitle is-size-6 time'}, d.toString()),
+                e('p', {className: 'subtitle is-size-6 until'}, u.toString()),
+                e('input', {className: 'editTimer button is-danger', type: 'button', value: 'Edit'}, null)
+              ),
+              e('form', {className: "hidden editDiv"},
+                e('input', {type: "date", className: "input is-primary editDate", required: true}, null),
+                e('input', {type: "time", className: "input is-primary editTime", required: true}, null),
+                e('input', {type: "submit", className: "button is-primary editTimerSubmit", value: "Add"}, null),
+                e('input', {type: "button", className: "button is-danger editTimerCancel", value: "Cancel"}, null)
+              )
             );
   }
 }
