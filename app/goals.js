@@ -142,17 +142,23 @@ $(document).ready(function() {
     $(this).parents(".timerInfo").siblings(".editDiv").show();
   });
 
-  function del(x) {
-    var table = x.parents(".column").children("h1").text().includes("Goals") ? "names" : "timers";
+  function del(x, table) {
     var stmt = db.prepare("DELETE FROM " + table + " WHERE name == (?)");
     stmt.run(x.siblings("h2").text());
     stmt.finalize();
     table == "names" ? displayAll() : displayTimers();
   }
 
+  function cancel(x) {
+    x.parents(".editDiv").hide();
+    x.parents(".editDiv").siblings(".timerInfo").show();
+  }
+
   //delete goal or timer
   $(document).on("click", ".deleteButton", function() {
-    del($(this));
+    var table = $(this).parents(".column").children("h1").text().includes("Goals") ? "names" : "timers";
+    console.log($(this));
+    del($(this), table);
   });
 
   //add requirement to goal
@@ -166,10 +172,12 @@ $(document).ready(function() {
   //edits timer
   $(document).on("submit", ".editDiv", function() {
     db.serialize(function() {
+      del($(this).siblings(".deleteButton"), "timers");
       var stmt = db.prepare("INSERT INTO timers VALUES (?, ?)");
-      stmt.run($(this).parents(".goal").find("h2").text(), $(this).siblings(".requireDiv").find("option:selected").val());
+      stmt.run($(this).parents(".goal").find("h2").text(), $(this).siblings(".editDate").val() + " " + $(this).siblings(".editTime").val());
       stmt.finalize();
       displayTimers();
+      cancel($(this));
     });
   });
 
@@ -205,8 +213,7 @@ $(document).ready(function() {
 
   //cancels editing the timer
   $(document).on("click", ".editTimerCancel", function() {
-    $(this).parents(".editDiv").hide();
-    $(this).parents(".editDiv").siblings(".timerInfo").show();
+    cancel($(this));
   });
 
   //add the goal to the database
