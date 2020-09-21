@@ -35,50 +35,52 @@ $(document).ready(function() {
 
     db.serialize(function() {
       db.all("SELECT name FROM names ORDER BY name ASC", function(err, rows) {
-        rows.forEach(function(row) {
-          reqList.push(e('option', {key: row.name, value: row.name}, row.name));
-        });
-        rd.render(
-          reqList,
-          document.getElementById("requireList")
-        );
+        if (rows != null) {
+          rows.forEach(function(row) {
+            reqList.push(e('option', {key: row.name, value: row.name}, row.name));
+          });
+          rd.render(
+            reqList,
+            document.getElementById("requireList")
+          );
+        }
       });
 
       db.all("SELECT title, requires FROM goals ORDER BY title ASC", function(err, rows) {
-        rows.forEach(function(row) {
-          if (map.has(row.title)) {
-            var temp = map.get(row.title);
-            temp.push(row.requires);
-            map.set(row.title, temp);
-          } else {
-            map.set(row.title, [row.requires]);
-          }
-        });
-        map.forEach(function(value, key) {
-          var reqList2 = reqList.filter(i => i.key !== key && !(value.includes(i.key)) && !map.get(i.key).includes(key));
-          if (value.length == 1) {
-            current.push(e(Goal, {key: key, title: key, reqs: [], select: reqList2}, null));
-          } else {
-            future.push(e(Goal, {key: key, title: key, reqs: value.slice(1), select: reqList2}, null));
-          }
-        });
+        if (rows != null) {
+          rows.forEach(function(row) {
+            if (map.has(row.title)) {
+              var temp = map.get(row.title);
+              temp.push(row.requires);
+              map.set(row.title, temp);
+            } else {
+              map.set(row.title, [row.requires]);
+            }
+          });
+          map.forEach(function(value, key) {
+            var reqList2 = reqList.filter(i => i.key !== key && !(value.includes(i.key)) && !map.get(i.key).includes(key));
+            if (value.length == 1) {
+              current.push(e(Goal, {key: key, title: key, reqs: [], select: reqList2}, null));
+            } else {
+              future.push(e(Goal, {key: key, title: key, reqs: value.slice(1), select: reqList2}, null));
+            }
+          });
 
-        rd.render(
-          current,
-          document.getElementById("currentList")
-        );
+          rd.render(
+            current,
+            document.getElementById("currentList")
+          );
 
-        // sort future goals list by number of requirements
-        future.sort(function(a, b){
-          return a.props.reqs.length - b.props.reqs.length;
-        });
-        rd.render(
-      		future,
-      		document.getElementById("futureList")
-      	);
+          // sort future goals list by number of requirements
+          future.sort(function(a, b){
+            return a.props.reqs.length - b.props.reqs.length;
+          });
+          rd.render(
+        		future,
+        		document.getElementById("futureList")
+        	);
+        }
       });
-
-
     });
     obj = newObject();
     obj.reqList = reqList;
@@ -88,19 +90,21 @@ $(document).ready(function() {
     var timers = [];
     var now = new Date();
     db.all("SELECT name, time FROM timers", function(err, rows) {
-      rows.forEach(function(row) {
-        timers.push(e(Timer, {key: row.name, title: row.name, time: row.time}, null));
-        var until = now - new Date(row.time);
-        if (0 <= until && until <= interval) {
-          alert(row.name + " is ready now");
-        }
-      });
+      if (rows != null) {
+        rows.forEach(function(row) {
+          timers.push(e(Timer, {key: row.name, title: row.name, time: row.time}, null));
+          var until = now - new Date(row.time);
+          if (0 <= until && until <= interval) {
+            alert(row.name + " is ready now");
+          }
+        });
 
-      timers = timers.filter(i => i != null);
-      rd.render(
-        timers,
-        document.getElementById("timerList")
-      );
+        timers = timers.filter(i => i != null);
+        rd.render(
+          timers,
+          document.getElementById("timerList")
+        );
+      }
     });
   }
 

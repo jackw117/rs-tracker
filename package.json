@@ -32,7 +32,7 @@
   },
   "devDependencies": {
     "@babel/core": "^7.11.4",
-    "electron": "^9.2.0",
+    "electron": "^9.3.1",
     "electron-builder": "^22.8.0"
   }
 }
