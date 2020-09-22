@@ -6,6 +6,10 @@ label {
   display: block;
 }
 
+.addDiv {
+  display: inline;
+}
+
 .formButtons {
   margin-top: 20px;
 }
@@ -16,6 +20,8 @@ label {
 
 .newType {
   display: none;
+  margin-bottom: 20px;
+  margin-top: 20px;
 }
 
 #currentReqs li {

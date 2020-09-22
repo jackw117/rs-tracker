@@ -20,7 +20,8 @@ app.on('ready', function () {
     webPreferences: {
       nodeIntegration: true,
       enableRemoteModule: false
-    }
+    },
+    icon: 'src/Gnome_child_chathead.png'
   });
 
   // and load the index.html of the app.

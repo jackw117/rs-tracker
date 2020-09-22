@@ -10,41 +10,44 @@
   </head>
   <body>
 
-    <div class="section">
-        <input type="button" class="button is-primary" name="add" id="add" value="Add">
+    <div class="addDiv">
+      <input type="button" class="button is-primary add" name="add" value="Add Goal">
 
-        <div class="newType">
-          <label for="skillText">Title</label>
-          <input type="text" id="skillText" name="skillText" class="input is-primary">
+      <div class="newType">
+        <label for="skillText">Title</label>
+        <input type="text" id="skillText" name="skillText" class="input is-primary">
 
-          <div id="addReqDiv">
-            <label for="require">Requirements</label>
-            <div class="select is-primary">
-              <select name="require" id="requireList"></select>
-            </div>
-
-            <input type="button" name="reqButton" id="reqButton" class="button is-primary" value="Add Requirement">
+        <div id="addReqDiv">
+          <label for="require">Requirements</label>
+          <div class="select is-primary">
+            <select name="require" id="requireList"></select>
           </div>
-          <div>
-            <h2>Current requirements:</h2>
-            <ul id="currentReqs">
 
-            </ul>
-          </div>
-          <div class="formButtons">
-            <input type="button" name="skill" id="skill" class="button is-primary" value="Add Goal">
-            <input type="button" name="cancel" id="cancel" class="button is-danger" value="Cancel">
-          </div>
+          <input type="button" name="reqButton" id="reqButton" class="button is-primary" value="Add Requirement">
         </div>
+        <div>
+          <h2>Current requirements:</h2>
+          <ul id="currentReqs">
+
+          </ul>
+        </div>
+        <div class="formButtons">
+          <input type="button" name="skill" id="skill" class="button is-primary" value="Add Goal">
+          <input type="button" name="cancel" class="button is-danger cancel" value="Cancel">
+        </div>
+      </div>
     </div>
 
-    <div>
-      <input type="text" id="timerTitle" name="timerTitle" class="input is-primary">
-      <input type="date" id="timerDate" name="timerDate" class="input is-primary">
-      <input type="time" id="timerTime" name="timerTime" class="input is-primary">
-      <input type="button" name="timerButton" id="timerButton" class="button is-primary" value="Add">
+    <div class="addDiv">
+      <input type="button" class="button is-primary add" name="add" value="Add Timer">
+      <div class="newType">
+        <input type="text" id="timerTitle" name="timerTitle" class="input is-primary">
+        <input type="date" id="timerDate" name="timerDate" class="input is-primary">
+        <input type="time" id="timerTime" name="timerTime" class="input is-primary">
+        <input type="button" name="timerButton" id="timerButton" class="button is-primary" value="Add">
+        <input type="button" name="cancel" class="button is-danger cancel" value="Cancel">
+      </div>
     </div>
-
 
     <div class="columns">
       <div class="column"></div>

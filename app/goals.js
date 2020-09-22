@@ -114,9 +114,9 @@ $(document).ready(function() {
   displayTimers();
 
   //show the goal form after clicking the add button
-  $("#add").click(function() {
-    $("#add").hide();
-    $(".newType").show();
+  $(".add").click(function() {
+    $(this).hide();
+    $(this).siblings("div").show();
     if (obj.reqList.length != 0) {
       $("#addReqDiv").show();
     } else {
@@ -126,10 +126,10 @@ $(document).ready(function() {
   });
 
   //cancels adding a new goal to the datbase
-  $("#cancel").click(function() {
-    $("#add").show();
-    $(".newType").hide();
-    $("#currentReqs").html("");
+  $(".cancel").click(function() {
+    $(this).parents(".addDiv").children(".add").show();
+    $(this).parents(".addDiv").children("div").hide();
+    $(this).parents(".addDiv").find("#currentReqs").html("");
     displayAll();
   });
 
@@ -224,7 +224,7 @@ $(document).ready(function() {
   $("#skill").click(function() {
     $("#currentReqs").html("");
     $(".newType").hide();
-    $("#add").show();
+    $(".add").show();
     var stmt;
     db.serialize(function() {
       var value = $("#skillText").val();
