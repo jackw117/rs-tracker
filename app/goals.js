@@ -174,14 +174,16 @@ $(document).ready(function() {
   });
 
   //edits timer
-  $(document).on("submit", ".editDiv", function() {
+  $(document).on("click", ".editTimerSubmit", function() {
+    var t = $(this);
     db.serialize(function() {
-      del($(this).siblings(".deleteButton"), "timers");
-      var stmt = db.prepare("INSERT INTO timers VALUES (?, ?)");
-      stmt.run($(this).parents(".goal").find("h2").text(), $(this).siblings(".editDate").val() + " " + $(this).siblings(".editTime").val());
+      var stmt = db.prepare("DELETE FROM timers WHERE name == (?)");
+      stmt.run(t.parents(".timer").find("h2").text());
+      stmt = db.prepare("INSERT INTO timers VALUES (?, ?)");
+      stmt.run(t.parents(".timer").find("h2").text(), t.siblings(".editDate").val() + " " + t.siblings(".editTime").val());
       stmt.finalize();
       displayTimers();
-      cancel($(this));
+      cancel(t);
     });
   });
 
@@ -257,6 +259,8 @@ $(document).ready(function() {
     $("#timerTitle").val("");
     $("#timerDate").val("");
     $("#timerTime").val("");
+    $(this).parents(".newType").hide();
+    $(this).parents(".newType").siblings("input").show();
     displayTimers();
   });
 
@@ -312,10 +316,10 @@ class Timer extends react.Component {
                 e('p', {className: 'subtitle is-size-6 until'}, u.toString()),
                 e('input', {className: 'editTimer button is-danger', type: 'button', value: 'Edit'}, null)
               ),
-              e('form', {className: "hidden editDiv"},
+              e('div', {className: "hidden editDiv"},
                 e('input', {type: "date", className: "input is-primary editDate", required: true}, null),
                 e('input', {type: "time", className: "input is-primary editTime", required: true}, null),
-                e('input', {type: "submit", className: "button is-primary editTimerSubmit", value: "Add"}, null),
+                e('input', {type: "button", className: "button is-primary editTimerSubmit", value: "Add"}, null),
                 e('input', {type: "button", className: "button is-danger editTimerCancel", value: "Cancel"}, null)
               )
             );
