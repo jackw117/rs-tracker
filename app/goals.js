@@ -148,7 +148,7 @@ $(document).ready(function() {
 
   function del(x, table) {
     var stmt = db.prepare("DELETE FROM " + table + " WHERE name == (?)");
-    stmt.run(x.siblings("h2").text());
+    stmt.run(x);
     stmt.finalize();
     table == "names" ? displayAll() : displayTimers();
   }
@@ -158,11 +158,26 @@ $(document).ready(function() {
     x.parents(".editDiv").siblings(".timerInfo").show();
   }
 
+  // remove the current goal and all its children
+  $(document).on("click", '.doneButton', function() {
+    var current = $(this).siblings(".title").text();
+    var stmt = db.prepare("SELECT title, requires FROM goals WHERE title == (?)");
+    stmt.all(current, function(err, rows) {
+      if (rows != null) {
+        rows.forEach(function(row) {
+          del(row.requires, "names");
+        });
+      }
+    });
+    del(current, "names");
+    stmt.finalize();
+  });
+
   //delete goal or timer
   $(document).on("click", ".deleteButton", function() {
     var table = $(this).parents(".column").children("h1").text().includes("Goals") ? "names" : "timers";
     console.log($(this));
-    del($(this), table);
+    del($(this).siblings("h2").text(), table);
   });
 
   //add requirement to goal
@@ -294,6 +309,7 @@ class Goal extends react.Component {
              e('h2', {className: 'title is-uppercase is-size-5'}, `${this.props.title}`),
              e('ul', {className: 'reqList subtitle is-size-6 is-uppercase'}, list),
              e('input', {className: 'editButton button is-danger', type: 'button', value: 'Edit'}, null),
+             e('input', {className: 'doneButton button', type: 'button', value: 'Complete'}, null),
              e('div', {className: "hidden editSelect"},
                select,
                e('input', {className: "cancelButton button is-danger", type: "button", value: "Cancel"}, null)
@@ -328,4 +344,3 @@ class Timer extends react.Component {
 
 // work on timers
 // data checks for timers
-// display goals with more reqs lower on list (done)
