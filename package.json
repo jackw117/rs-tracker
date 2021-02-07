@@ -18,7 +18,7 @@
   "scripts": {
     "postinstall": "install-app-deps",
     "start": "electron .",
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "qunit",
     "release": "build"
   },
   "dependencies": {
@@ -34,6 +34,7 @@
     "@babel/core": "^7.11.4",
     "electron": "^9.4.2",
     "electron-builder": "^22.8.0",
-    "electron-packager": "^15.2.0"
+    "electron-packager": "^15.2.0",
+    "qunit": "^2.14.0"
   }
 }

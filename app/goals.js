@@ -3,7 +3,8 @@ const rd = require('react-dom');
 const $ = require('jquery');
 const sqlite3 = require('sqlite3').verbose();
 const db = new sqlite3.Database('goals.db');
-const moment = require('moment')
+const {Goal, Timer} = require('./components.js')
+const {add, del, remove, addReq, complete, addTimer, editTimer} = require('./dbFunctions.js')
 
 const e = react.createElement;
 const interval = 1000*60*15
@@ -11,8 +12,8 @@ const interval = 1000*60*15
 $(document).ready(function() {
   //creates the database if it doesn't already exist
   db.serialize(function() {
-    db.run("CREATE TABLE IF NOT EXISTS goals (title TEXT, requires TEXT, CONSTRAINT fk_title FOREIGN KEY (title) REFERENCES names(name) ON DELETE CASCADE, CONSTRAINT fk_req FOREIGN KEY (requires) REFERENCES names(name) ON DELETE CASCADE)");
-    db.run("CREATE TABLE IF NOT EXISTS names (name TEXT PRIMARY KEY)");
+    db.run("CREATE TABLE IF NOT EXISTS goals (title TEXT PRIMARY KEY, desc TEXT)");
+    db.run("CREATE TABLE IF NOT EXISTS reqs (parent TEXT, child TEXT, FOREIGN KEY (parent) REFERENCES goals(title) ON DELETE CASCADE, FOREIGN KEY (child) REFERENCES goals(title) ON DELETE CASCADE)");
     db.run("CREATE TABLE IF NOT EXISTS timers (name TEXT PRIMARY KEY, time TEXT)");
     db.run("PRAGMA foreign_keys = ON");
   });
@@ -31,13 +32,18 @@ $(document).ready(function() {
     var current = [];
     var future = [];
     var reqList = [];
+    var titles = [];
     var map = new Map();
+    var descMap = new Map();
 
     db.serialize(function() {
-      db.all("SELECT name FROM names ORDER BY name ASC", function(err, rows) {
+      // builds out the requirement selection list from the titles in the goals database
+      db.all("SELECT title, desc FROM goals ORDER BY title ASC", function(err, rows) {
         if (rows != null) {
           rows.forEach(function(row) {
-            reqList.push(e('option', {key: row.name, value: row.name}, row.name));
+            reqList.push(e('option', {key: row.title, value: row.title}, row.title));
+            titles.push(row);
+            descMap.set(row.title, row.desc);
           });
           rd.render(
             reqList,
@@ -46,23 +52,30 @@ $(document).ready(function() {
         }
       });
 
-      db.all("SELECT title, requires FROM goals ORDER BY title ASC", function(err, rows) {
+      db.all("SELECT parent, child FROM reqs", function(err, rows) {
         if (rows != null) {
+          // creates map of parent goals to their requirements
           rows.forEach(function(row) {
-            if (map.has(row.title)) {
-              var temp = map.get(row.title);
-              temp.push(row.requires);
-              map.set(row.title, temp);
+            if (map.has(row.parent)) {
+              var temp = map.get(row.parent);
+              temp.push(row.child);
+              map.set(row.parent, temp);
             } else {
-              map.set(row.title, [row.requires]);
+              map.set(row.parent, [row.child]);
             }
           });
+
+          // builds out the goals with dependencies to be added to the futureList section
           map.forEach(function(value, key) {
-            var reqList2 = reqList.filter(i => i.key !== key && !(value.includes(i.key)) && !map.get(i.key).includes(key));
-            if (value.length == 1) {
-              current.push(e(Goal, {key: key, title: key, reqs: [], select: reqList2}, null));
-            } else {
-              future.push(e(Goal, {key: key, title: key, reqs: value.slice(1), select: reqList2}, null));
+            var reqList2 = reqList.filter(i => i.key !== key && !(value.includes(i.key)));
+            future.push(e(Goal, {key: key, title: key, reqs: value, desc: descMap.get(key), select: reqList2}, null));
+          });
+
+          // builds out the goals to add to the currentList section based on which ones are not in the reqs table
+          titles.forEach(function(value) {
+            if (!map.has(value.title)) {
+              var reqList2 = reqList.filter(i => i.key !== value.title);
+              current.push(e(Goal, {key: value.title, title: value.title, desc: value.desc, reqs: [], select: reqList2}, null));
             }
           });
 
@@ -123,6 +136,7 @@ $(document).ready(function() {
       $("#addReqDiv").hide();
     }
     $("#skillText").val("");
+    $("#descText").val("");
   });
 
   //cancels adding a new goal to the datbase
@@ -146,12 +160,7 @@ $(document).ready(function() {
     $(this).parents(".timerInfo").siblings(".editDiv").show();
   });
 
-  function del(x, table) {
-    var stmt = db.prepare("DELETE FROM " + table + " WHERE name == (?)");
-    stmt.run(x);
-    stmt.finalize();
-    table == "names" ? displayAll() : displayTimers();
-  }
+
 
   function cancel(x) {
     x.parents(".editDiv").hide();
@@ -160,46 +169,36 @@ $(document).ready(function() {
 
   // remove the current goal and all its children
   $(document).on("click", '.doneButton', function() {
-    var current = $(this).siblings(".title").text();
-    var stmt = db.prepare("SELECT title, requires FROM goals WHERE title == (?)");
-    stmt.all(current, function(err, rows) {
-      if (rows != null) {
-        rows.forEach(function(row) {
-          del(row.requires, "names");
-        });
-      }
+    var parent = $(this).siblings(".title").text();
+    var reqs = [];
+    $(this).siblings(".reqList").find("li").each(function() {
+      reqs.push($(this).text());
     });
-    del(current, "names");
-    stmt.finalize();
+    complete(parent, reqs, displayAll);
   });
 
   //delete goal or timer
   $(document).on("click", ".deleteButton", function() {
-    var table = $(this).parents(".column").children("h1").text().includes("Goals") ? "names" : "timers";
-    console.log($(this));
-    del($(this).siblings("h2").text(), table);
+    var table = $(this).parents(".column").children("h1").text().includes("Goals") ? "goals" : "timers";
+    var name = table == "goals" ? "title" : "name";
+    var cb = table == "goals" ? displayAll : displayTimers;
+    var value = $(this).siblings("h2").text();
+    del(value, table, name, cb);
   });
 
   //add requirement to goal
   $(document).on("click", ".addReqEdit", function() {
-    var stmt = db.prepare("INSERT INTO goals VALUES (?, ?)");
-    stmt.run($(this).parents(".goal").find("h2").text(), $(this).siblings(".requireDiv").find("option:selected").val());
-    stmt.finalize();
-    displayAll();
+    var parent = $(this).parents(".goal").find("h2").text();
+    var child = $(this).siblings(".requireDiv").find("option:selected").val();
+    addReq(parent, child, displayAll);
   });
 
   //edits timer
   $(document).on("click", ".editTimerSubmit", function() {
-    var t = $(this);
-    db.serialize(function() {
-      var stmt = db.prepare("DELETE FROM timers WHERE name == (?)");
-      stmt.run(t.parents(".timer").find("h2").text());
-      stmt = db.prepare("INSERT INTO timers VALUES (?, ?)");
-      stmt.run(t.parents(".timer").find("h2").text(), t.siblings(".editDate").val() + " " + t.siblings(".editTime").val());
-      stmt.finalize();
-      displayTimers();
-      cancel(t);
-    });
+    var title = $(this).parents(".timer").find("h2").text();
+    var time = $(this).siblings(".editDate").val() + " " + $(this).siblings(".editTime").val();
+    editTimer(title, time, displayTimers);
+    cancel($(this));
   });
 
   //add currently selected requirement to the list and display on page
@@ -219,10 +218,9 @@ $(document).ready(function() {
 
   //removes a requirement from a goal
   $(document).on("click", ".removeButton", function() {
-    var stmt = db.prepare("DELETE FROM goals WHERE requires == (?)");
-    stmt.run($(this).parents("li").text());
-    stmt.finalize();
-    displayAll();
+    var child = $(this).parents("li").text()
+    var parent = $(this).parents(".notification").find(".title").text();
+    remove(parent, child, displayAll);
   });
 
   //cancels editing the goal
@@ -242,41 +240,21 @@ $(document).ready(function() {
     $("#currentReqs").html("");
     $(".newType").hide();
     $(".add").show();
-    var stmt;
-    db.serialize(function() {
-      var value = $("#skillText").val();
-      stmt = db.prepare("INSERT INTO names VALUES (?)");
-      stmt.run(value, function(e) {
-        if (e) {
-          console.log(e);
-          alert("Failed to add goal. New goals must have a unique name.");
-        } else {
-          stmt = db.prepare("INSERT INTO goals VALUES (?, ?)");
-          stmt.run(value, null);
-          if (obj.require.length != 0) {
-            stmt = db.prepare("INSERT INTO goals VALUES (?, ?)");
-            obj.require.forEach(function(element) {
-              stmt.run(value, element);
-            });
-          }
-          displayAll();
-        }
-      });
-      stmt.finalize();
-    });
+    var value = $("#skillText").val();
+    var desc = $("#descText").val();
+    add(value, desc, obj.require, displayAll);
   });
 
   //adds the timer to the database
   $("#timerButton").click(function() {
-    var stmt = db.prepare("INSERT INTO timers VALUES (?, ?)");
-    stmt.run($("#timerTitle").val(), $("#timerDate").val() + " " + $("#timerTime").val());
-    stmt.finalize();
+    var title = $("#timerTitle").val();
+    var date = $("#timerDate").val() + " " + $("#timerTime").val();
     $("#timerTitle").val("");
     $("#timerDate").val("");
     $("#timerTime").val("");
     $(this).parents(".newType").hide();
     $(this).parents(".newType").siblings("input").show();
-    displayTimers();
+    addTimer(title, date, displayTimers);
   });
 
   setInterval(function() {
@@ -292,55 +270,6 @@ $(document).ready(function() {
   }, interval);
 });
 
-class Goal extends react.Component {
-  render() {
-    var list = [];
-    react.Children.map(this.props.reqs, item => {
-      list.push(e("li", {key: item},
-        item, e('input', {className: "removeButton hidden", type: "button", value: "Remove requirement"}, null)
-      ));
-    });
-    var select = this.props.select.length != 0 ?
-      [e('div', {className: "requireDiv select is-primary", key: "div"}, e('select', {name: "require"}, this.props.select)),
-      e('input', {className: "addReqEdit button is-danger", type: "button", value: "Confirm Edit", key: "input"}, null)]
-      : null;
-
-    return e('div', {className: 'notification is-link is-light goal'},
-             e('h2', {className: 'title is-uppercase is-size-5'}, `${this.props.title}`),
-             e('ul', {className: 'reqList subtitle is-size-6 is-uppercase'}, list),
-             e('input', {className: 'editButton button is-danger', type: 'button', value: 'Edit'}, null),
-             e('input', {className: 'doneButton button', type: 'button', value: 'Complete'}, null),
-             e('div', {className: "hidden editSelect"},
-               select,
-               e('input', {className: "cancelButton button is-danger", type: "button", value: "Cancel"}, null)
-              ),
-             e('button', {className: "delete deleteButton hidden"}, null)
-            );
-  }
-}
-
-class Timer extends react.Component {
-  render() {
-    var d = moment(new Date(this.props.time)).format("ddd MMM Do [at] HH:mm");
-    var u = moment(d, "ddd MMM Do [at] HH:mm").fromNow();
-
-    return e('div', {className: 'notification is-link is-light timer'},
-              e('h2', {className: 'title is-uppercase is-size-5'}, `${this.props.title}`),
-              e('button', {className: "delete deleteButton hidden"}, null),
-              e('div', {className: "timerInfo"},
-                e('p', {className: 'subtitle is-size-6 time'}, d.toString()),
-                e('p', {className: 'subtitle is-size-6 until'}, u.toString()),
-                e('input', {className: 'editTimer button is-danger', type: 'button', value: 'Edit'}, null)
-              ),
-              e('div', {className: "hidden editDiv"},
-                e('input', {type: "date", className: "input is-primary editDate", required: true}, null),
-                e('input', {type: "time", className: "input is-primary editTime", required: true}, null),
-                e('input', {type: "button", className: "button is-primary editTimerSubmit", value: "Add"}, null),
-                e('input', {type: "button", className: "button is-danger editTimerCancel", value: "Cancel"}, null)
-              )
-            );
-  }
-}
-
 // work on timers
 // data checks for timers
+// TODO: finish migrating functions over to other files, testing
