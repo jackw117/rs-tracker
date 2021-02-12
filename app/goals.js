@@ -1,37 +1,25 @@
 const react = require('react');
 const rd = require('react-dom');
 const $ = require('jquery');
+const bootstrap = require('bootstrap');
 const sqlite3 = require('sqlite3').verbose();
 const db = new sqlite3.Database('goals.db');
-const {Goal, Timer} = require('./components.js')
-const {add, del, remove, addReq, complete, addTimer, editTimer} = require('./dbFunctions.js')
+const {Goal, Timer, Requirement} = require('./components.js');
+const {add, del, remove, complete, addTimer, editTimer, create, editGoal} = require('./dbFunctions.js');
 
 const e = react.createElement;
-const interval = 1000*60*15
+const interval = 1000*60*15;
 
 $(document).ready(function() {
-  //creates the database if it doesn't already exist
-  db.serialize(function() {
-    db.run("CREATE TABLE IF NOT EXISTS goals (title TEXT PRIMARY KEY, desc TEXT)");
-    db.run("CREATE TABLE IF NOT EXISTS reqs (parent TEXT, child TEXT, FOREIGN KEY (parent) REFERENCES goals(title) ON DELETE CASCADE, FOREIGN KEY (child) REFERENCES goals(title) ON DELETE CASCADE)");
-    db.run("CREATE TABLE IF NOT EXISTS timers (name TEXT PRIMARY KEY, time TEXT)");
-    db.run("PRAGMA foreign_keys = ON");
-  });
-
-  //creates a new goal object
-  function newObject() {
-    var o = new Object();
-    o.require = new Array();
-    o.parents = new Array();
-    o.reqList = new Array();
-    return o;
-  }
+  // creates the database
+  create();
 
   //display all current goals
   function displayAll() {
     var current = [];
     var future = [];
     var reqList = [];
+    var requirements = [];
     var titles = [];
     var map = new Map();
     var descMap = new Map();
@@ -42,11 +30,12 @@ $(document).ready(function() {
         if (rows != null) {
           rows.forEach(function(row) {
             reqList.push(e('option', {key: row.title, value: row.title}, row.title));
+            requirements.push(e(Requirement, {key: row.title, value: row.title}))
             titles.push(row);
             descMap.set(row.title, row.desc);
           });
           rd.render(
-            reqList,
+            requirements,
             document.getElementById("requireList")
           );
         }
@@ -95,8 +84,6 @@ $(document).ready(function() {
         }
       });
     });
-    obj = newObject();
-    obj.reqList = reqList;
   }
 
   function displayTimers() {
@@ -121,51 +108,69 @@ $(document).ready(function() {
     });
   }
 
-  //current goal being created
-  var obj;
   displayAll();
   displayTimers();
 
-  //show the goal form after clicking the add button
-  $(".add").click(function() {
-    $(this).hide();
-    $(this).siblings("div").show();
-    if (obj.reqList.length != 0) {
-      $("#addReqDiv").show();
-    } else {
-      $("#addReqDiv").hide();
-    }
-    $("#skillText").val("");
-    $("#descText").val("");
+  // resets form field for timer and goal when modal is shown
+  $('.modal').on('show.bs.modal', function (e) {
+    $(".addForm").trigger("reset");
   });
 
-  //cancels adding a new goal to the datbase
-  $(".cancel").click(function() {
-    $(this).parents(".addDiv").children(".add").show();
-    $(this).parents(".addDiv").children("div").hide();
-    $(this).parents(".addDiv").find("#currentReqs").html("");
-    displayAll();
+  // adds the goal to the database
+  $("#goalSave").click(function() {
+    var formArray = $("#goalForm").serializeArray();
+    var title = formArray[0]["value"];
+    var desc = formArray[1]["value"];
+    var reqs = [];
+    $(".checkReq:checked").each(function() {
+      reqs.push($(this).val());
+    });
+    add(title, desc, reqs, displayAll);
   });
 
-  //show edit form
+  // adds the timer to the database
+  $("#timerSave").click(function() {
+    var formArray = $("#timerForm").serializeArray();
+    var title = formArray[0]["value"];
+    var date = formArray[1]["value"];
+    var time = formArray[2]["value"];
+    addTimer(title, date + " " + time, displayTimers);
+  });
+
+  //show edit goal form
   $(document).on("click", ".editButton", function() {
-    $(this).hide();
-    $(this).siblings(".reqList").find("input").show();
-    $(this).siblings(".editSelect").show();
+    var title = $(this).siblings(".title").text();
+    var desc = $(this).siblings(".desc").text();
+    $(this).siblings(".reqList").find("li").each(function() {
+      $("#" + $(this).text()).prop("checked", true);
+    });
+    $('#goalModal').modal('show');
+    $("#skillText").val(title);
+    $("#descText").val(desc);
+  });
+
+  //hides edit goal form
+  $(document).on("click", ".cancelButton", function() {
+    hideAll($(this), ".goal", ".hidden", ".shown");
   });
 
   //show edit timer form
   $(document).on("click", ".editTimer", function() {
-    $(this).parents(".timerInfo").hide();
-    $(this).parents(".timerInfo").siblings(".editDiv").show();
+    hideAll($(this), ".timer", ".shown", ".hidden");
   });
 
+  //hides edit timer form
+  $(document).on("click", ".editTimerCancel", function() {
+    hideAll($(this), ".timer", ".hidden", ".shown");
+  });
 
-
-  function cancel(x) {
-    x.parents(".editDiv").hide();
-    x.parents(".editDiv").siblings(".timerInfo").show();
-  }
+  //edits timer
+  $(document).on("click", ".editTimerSubmit", function() {
+    var title = $(this).parents(".timer").find("h2").text();
+    var time = $(this).siblings(".editDate").val() + " " + $(this).siblings(".editTime").val();
+    editTimer(title, time, displayTimers);
+    hideAll($(this), ".timer", ".hidden", ".shown");
+  });
 
   // remove the current goal and all its children
   $(document).on("click", '.doneButton', function() {
@@ -188,32 +193,11 @@ $(document).ready(function() {
 
   //add requirement to goal
   $(document).on("click", ".addReqEdit", function() {
-    var parent = $(this).parents(".goal").find("h2").text();
+    var title = $(this).parents(".goal").find("h2").text();
     var child = $(this).siblings(".requireDiv").find("option:selected").val();
-    addReq(parent, child, displayAll);
-  });
-
-  //edits timer
-  $(document).on("click", ".editTimerSubmit", function() {
-    var title = $(this).parents(".timer").find("h2").text();
-    var time = $(this).siblings(".editDate").val() + " " + $(this).siblings(".editTime").val();
-    editTimer(title, time, displayTimers);
-    cancel($(this));
-  });
-
-  //add currently selected requirement to the list and display on page
-  $("#reqButton").click(function() {
-    var selection = $("#requireList:first").val();
-    obj.reqList = obj.reqList.filter(i => i.key !== selection);
-    $("<li>" + selection + "</li>").appendTo("#currentReqs");
-    obj.require.push(selection);
-    rd.render(
-      obj.reqList,
-      document.getElementById("requireList")
-    );
-    if (obj.reqList.length == 0) {
-      $("#addReqDiv").hide();
-    }
+    var desc = $(this).parents(".goal").find(".editDesc").val();
+    console.log(desc)
+    editGoal(desc, title, displayAll);
   });
 
   //removes a requirement from a goal
@@ -221,40 +205,6 @@ $(document).ready(function() {
     var child = $(this).parents("li").text()
     var parent = $(this).parents(".notification").find(".title").text();
     remove(parent, child, displayAll);
-  });
-
-  //cancels editing the goal
-  $(document).on("click", ".cancelButton", function() {
-    $(this).parents(".editSelect").hide();
-    $(this).parents(".notification").find(".removeButton").hide();
-    $(this).parents(".notification").find(".editButton").show();
-  });
-
-  //cancels editing the timer
-  $(document).on("click", ".editTimerCancel", function() {
-    cancel($(this));
-  });
-
-  //add the goal to the database
-  $("#skill").click(function() {
-    $("#currentReqs").html("");
-    $(".newType").hide();
-    $(".add").show();
-    var value = $("#skillText").val();
-    var desc = $("#descText").val();
-    add(value, desc, obj.require, displayAll);
-  });
-
-  //adds the timer to the database
-  $("#timerButton").click(function() {
-    var title = $("#timerTitle").val();
-    var date = $("#timerDate").val() + " " + $("#timerTime").val();
-    $("#timerTitle").val("");
-    $("#timerDate").val("");
-    $("#timerTime").val("");
-    $(this).parents(".newType").hide();
-    $(this).parents(".newType").siblings("input").show();
-    addTimer(title, date, displayTimers);
   });
 
   setInterval(function() {
@@ -268,8 +218,12 @@ $(document).ready(function() {
     });
     displayTimers();
   }, interval);
+
+  function hideAll(current, container, hideClass, showClass) {
+    current.parents(container).find(hideClass).hide();
+    current.parents(container).find(showClass).show();
+  }
 });
 
-// work on timers
-// data checks for timers
 // TODO: finish migrating functions over to other files, testing
+// TODO: adding a goal with multiple reqs only shows the first req (others appear after refreshing app)

@@ -11,43 +11,61 @@
   <body>
 
     <div class="addDiv">
-      <input type="button" class="button is-primary add" name="add" value="Add Goal">
+      <input type="button" class="button is-primary addButton" id="addGoalButton" value="Add Goal" data-toggle="modal" data-target="#goalModal">
+      <input type="button" class="button is-primary addButton" id="addTimerButton" value="Add Timer" data-toggle="modal" data-target="#timerModal">
+    </div>
 
-      <div class="newType">
-        <label for="skillText">Title</label>
-        <input type="text" id="skillText" name="skillText" class="input is-primary">
-        <label for="descText">Description</label>
-        <textarea id="descText" rows="4" cols="50"></textarea>
+    <!-- Modal -->
+    <div id="goalModal" class="modal" role="dialog">
+      <div class="modal-dialog">
 
-        <div id="addReqDiv">
-          <label for="require">Requirements</label>
-          <div class="select is-primary">
-            <select name="require" id="requireList"></select>
+        <!-- Modal content-->
+        <div class="modal-content">
+          <div class="modal-header">
+            <h4 class="modal-title">New Goal</h4>
           </div>
-
-          <input type="button" name="reqButton" id="reqButton" class="button is-primary" value="Add Requirement">
-        </div>
-        <div>
-          <h2>Current requirements:</h2>
-          <ul id="currentReqs">
-
-          </ul>
-        </div>
-        <div class="formButtons">
-          <input type="button" name="skill" id="skill" class="button is-primary" value="Add Goal">
-          <input type="button" name="cancel" class="button is-danger cancel" value="Cancel">
+          <div class="modal-body">
+            <form class="addForm" id="goalForm">
+              <label for="skillText">Title</label>
+              <input type="text" id="skillText" name="skillText" class="input is-primary">
+              <label for="descText">Description</label>
+              <textarea id="descText" name="descText" rows="4" cols="50"></textarea>
+              <label for="requireList">Requirements</label>
+              <div id="requireList"></div>
+            </form>
+          </div>
+          <div class="modal-footer">
+            <button id="goalSave" type="button" class="btn btn-default" data-dismiss="modal">Save</button>
+            <button id="goalClose" type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+          </div>
         </div>
       </div>
     </div>
 
-    <div class="addDiv">
-      <input type="button" class="button is-primary add" name="add" value="Add Timer">
-      <div class="newType">
-        <input type="text" id="timerTitle" name="timerTitle" class="input is-primary">
-        <input type="date" id="timerDate" name="timerDate" class="input is-primary">
-        <input type="time" id="timerTime" name="timerTime" class="input is-primary">
-        <input type="button" name="timerButton" id="timerButton" class="button is-primary" value="Add">
-        <input type="button" name="cancel" class="button is-danger cancel" value="Cancel">
+    <!-- Modal -->
+    <div id="timerModal" class="modal" role="dialog">
+      <div class="modal-dialog">
+
+        <!-- Modal content-->
+        <div class="modal-content">
+          <div class="modal-header">
+            <h4 class="modal-title">New Goal</h4>
+          </div>
+          <div class="modal-body">
+            <form class="addForm" id="timerForm">
+              <label for="timerTitle">Title:</label>
+              <input type="text" id="timerTitle" name="timerTitle" class="input is-primary">
+              <label for="timerDate">Date:</label>
+              <input type="date" id="timerDate" name="timerDate" class="input is-primary">
+              <label for="timerTime">Time:</label>
+              <input type="time" id="timerTime" name="timerTime" class="input is-primary">
+            </form>
+          </div>
+          <div class="modal-footer">
+            <button id="timerSave" type="button" class="btn btn-default" data-dismiss="modal">Save</button>
+            <button id="timerClose" type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+          </div>
+        </div>
       </div>
     </div>
 

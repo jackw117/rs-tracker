@@ -1,9 +1,15 @@
+@import '../node_modules/bootstrap/dist/css/bootstrap.min.css';
+
 body {
   padding: 10px;
 }
 
 label {
   display: block;
+}
+
+textarea {
+  width: -webkit-fill-available;
 }
 
 .addDiv {
@@ -18,16 +24,14 @@ label {
   display: none;
 }
 
-.newType {
-  display: none;
-  margin-bottom: 20px;
-  margin-top: 20px;
+.modal-backdrop {
+  z-index: 0;
 }
 
 #currentReqs li {
   margin-left: 20px;
 }
 
-#addReqDiv {
-  padding-top:25px;
+#requireList {
+  display: block;
 }

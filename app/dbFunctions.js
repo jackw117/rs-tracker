@@ -22,15 +22,6 @@ function add(title, desc, reqs, cb) {
   stmt.finalize();
 }
 
-// adds an entry to the reqs table
-function addReq(parent, child, cb) {
-  var stmt = db.prepare("INSERT INTO reqs VALUES (?, ?)");
-  stmt.run(parent, child, function(e) {
-    cb();
-  });
-  stmt.finalize();
-}
-
 // adds a timer to the database
 function addTimer(title, date, cb) {
   var stmt = db.prepare("INSERT INTO timers VALUES (?, ?)");
@@ -49,11 +40,34 @@ function complete(parent, reqs, cb) {
   del(parent, "goals", "title", cb);
 }
 
+// creates the database if it doesn't already exist
+function create() {
+  db.serialize(function() {
+    db.run("CREATE TABLE IF NOT EXISTS goals (title TEXT PRIMARY KEY, desc TEXT)");
+    db.run("CREATE TABLE IF NOT EXISTS reqs (parent TEXT, child TEXT, FOREIGN KEY (parent) REFERENCES goals(title) ON DELETE CASCADE, FOREIGN KEY (child) REFERENCES goals(title) ON DELETE CASCADE)");
+    db.run("CREATE TABLE IF NOT EXISTS timers (name TEXT PRIMARY KEY, time TEXT)");
+    db.run("PRAGMA foreign_keys = ON");
+  });
+}
+
 // deletes either a goal or a timer from the corresponding table
 function del(value, table, name, cb) {
   var stmt = db.prepare("DELETE FROM " + table + " WHERE " + name + " == (?)");
   stmt.run(value, function(e) {
     if (cb) {
+      cb();
+    }
+  });
+  stmt.finalize();
+}
+
+// updates the given columns in a goal
+function editGoal(desc, title, cb) {
+  var stmt = db.prepare("UPDATE goals SET desc = (?) WHERE title == (?)");
+  stmt.run(desc, title, function(e) {
+    if (e) {
+      console.log(e);
+    } else {
       cb();
     }
   });
@@ -78,4 +92,4 @@ function remove(parent, child, cb) {
   stmt.finalize();
 }
 
-module.exports = {add: add, del: del, remove: remove, addReq: addReq, complete: complete, addTimer: addTimer, editTimer: editTimer};
+module.exports = {add: add, del: del, remove: remove, complete: complete, addTimer: addTimer, editTimer: editTimer, create: create, editGoal: editGoal};

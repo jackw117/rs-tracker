@@ -3,6 +3,14 @@ const rd = require('react-dom');
 const moment = require('moment')
 const e = react.createElement;
 
+class Requirement extends react.Component {
+  render() {
+    return e("label", {htmlFor: `${this.props.value}`},
+             e("span", {className: "labelSpan"}, `${this.props.value}`),
+             e("input", {className: "checkReq", type: "checkbox", id: `${this.props.value}`, value: `${this.props.value}`}, null));
+  }
+}
+
 class Goal extends react.Component {
   render() {
     var list = [];
@@ -12,8 +20,7 @@ class Goal extends react.Component {
       ));
     });
     var select = this.props.select.length != 0 ?
-      [e('div', {className: "requireDiv select is-primary", key: "div"}, e('select', {name: "require"}, this.props.select)),
-      e('input', {className: "addReqEdit button is-danger", type: "button", value: "Confirm Edit", key: "input"}, null)]
+      [e('div', {className: "requireDiv select is-primary", key: "div"}, e('select', {name: "require"}, this.props.select))]
       : null;
 
     return e('div', {className: 'notification is-link is-light goal'},
@@ -22,11 +29,7 @@ class Goal extends react.Component {
              e('ul', {className: 'reqList subtitle is-size-6 is-uppercase'}, list),
              e('input', {className: 'editButton button is-danger', type: 'button', value: 'Edit'}, null),
              e('input', {className: 'doneButton button', type: 'button', value: 'Complete'}, null),
-             e('div', {className: "hidden editSelect"},
-               select,
-               e('input', {className: "cancelButton button is-danger", type: "button", value: "Cancel"}, null)
-              ),
-             e('button', {className: "delete deleteButton hidden"}, null)
+             e('button', {className: "delete deleteButton"}, null)
             );
   }
 }
@@ -39,7 +42,7 @@ class Timer extends react.Component {
     return e('div', {className: 'notification is-link is-light timer'},
               e('h2', {className: 'title is-uppercase is-size-5'}, `${this.props.title}`),
               e('button', {className: "delete deleteButton hidden"}, null),
-              e('div', {className: "timerInfo"},
+              e('div', {className: "timerInfo shown"},
                 e('p', {className: 'subtitle is-size-6 time'}, d.toString()),
                 e('p', {className: 'subtitle is-size-6 until'}, u.toString()),
                 e('input', {className: 'editTimer button is-danger', type: 'button', value: 'Edit'}, null)
@@ -54,4 +57,4 @@ class Timer extends react.Component {
   }
 }
 
-module.exports = {Goal: Goal, Timer: Timer};
+module.exports = {Goal: Goal, Timer: Timer, Requirement: Requirement};
