@@ -44,7 +44,7 @@ function complete(parent, reqs, cb) {
 function create() {
   db.serialize(function() {
     db.run("CREATE TABLE IF NOT EXISTS goals (title TEXT PRIMARY KEY, desc TEXT)");
-    db.run("CREATE TABLE IF NOT EXISTS reqs (parent TEXT, child TEXT, FOREIGN KEY (parent) REFERENCES goals(title) ON DELETE CASCADE, FOREIGN KEY (child) REFERENCES goals(title) ON DELETE CASCADE)");
+    db.run("CREATE TABLE IF NOT EXISTS reqs (parent TEXT, child TEXT, FOREIGN KEY (parent) REFERENCES goals(title) ON DELETE CASCADE ON UPDATE CASCADE, FOREIGN KEY (child) REFERENCES goals(title) ON DELETE CASCADE ON UPDATE CASCADE)");
     db.run("CREATE TABLE IF NOT EXISTS timers (name TEXT PRIMARY KEY, time TEXT)");
     db.run("PRAGMA foreign_keys = ON");
   });
@@ -62,16 +62,21 @@ function del(value, table, name, cb) {
 }
 
 // updates the given columns in a goal
-function editGoal(desc, title, cb) {
-  var stmt = db.prepare("UPDATE goals SET desc = (?) WHERE title == (?)");
-  stmt.run(desc, title, function(e) {
-    if (e) {
-      console.log(e);
-    } else {
-      cb();
+function editGoal(desc, title, old, reqs, cb) {
+  db.serialize(function() {
+    var stmt = db.prepare("UPDATE goals SET desc = (?), title = (?) WHERE title == (?)");
+    stmt.run(desc, title, old);
+    stmt = db.prepare("DELETE FROM reqs WHERE parent == (?)");
+    stmt.run(title);
+    if (reqs.length != 0) {
+      reqs.forEach(function(req) {
+        stmt = db.prepare("INSERT INTO reqs VALUES (?, ?)");
+        stmt.run(title, req);
+      });
     }
+    stmt.finalize();
   });
-  stmt.finalize();
+  cb();
 }
 
 // edits the time field of a timer
@@ -87,7 +92,9 @@ function editTimer(title, time, cb) {
 function remove(parent, child, cb) {
   var stmt = db.prepare("DELETE FROM reqs WHERE parent == (?) AND child == (?)");
   stmt.run(parent, child, function(e) {
-    cb();
+    if (cb) {
+      cb();
+    }
   });
   stmt.finalize();
 }

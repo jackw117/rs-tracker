@@ -4,7 +4,7 @@ const $ = require('jquery');
 const bootstrap = require('bootstrap');
 const sqlite3 = require('sqlite3').verbose();
 const db = new sqlite3.Database('goals.db');
-const {Goal, Timer, Requirement} = require('./components.js');
+const {Goal, Timer, Requirement, Modal} = require('./components.js');
 const {add, del, remove, complete, addTimer, editTimer, create, editGoal} = require('./dbFunctions.js');
 
 const e = react.createElement;
@@ -14,12 +14,13 @@ $(document).ready(function() {
   // creates the database
   create();
 
+  var requirements = [];
+
   //display all current goals
   function displayAll() {
     var current = [];
     var future = [];
-    var reqList = [];
-    var requirements = [];
+    requirements = [];
     var titles = [];
     var map = new Map();
     var descMap = new Map();
@@ -29,15 +30,10 @@ $(document).ready(function() {
       db.all("SELECT title, desc FROM goals ORDER BY title ASC", function(err, rows) {
         if (rows != null) {
           rows.forEach(function(row) {
-            reqList.push(e('option', {key: row.title, value: row.title}, row.title));
-            requirements.push(e(Requirement, {key: row.title, value: row.title}))
+            requirements.push(e(Requirement, {key: row.title, value: row.title, checked: false}))
             titles.push(row);
             descMap.set(row.title, row.desc);
           });
-          rd.render(
-            requirements,
-            document.getElementById("requireList")
-          );
         }
       });
 
@@ -56,15 +52,13 @@ $(document).ready(function() {
 
           // builds out the goals with dependencies to be added to the futureList section
           map.forEach(function(value, key) {
-            var reqList2 = reqList.filter(i => i.key !== key && !(value.includes(i.key)));
-            future.push(e(Goal, {key: key, title: key, reqs: value, desc: descMap.get(key), select: reqList2}, null));
+            future.push(e(Goal, {key: key, title: key, reqs: value, desc: descMap.get(key)}, null));
           });
 
           // builds out the goals to add to the currentList section based on which ones are not in the reqs table
           titles.forEach(function(value) {
             if (!map.has(value.title)) {
-              var reqList2 = reqList.filter(i => i.key !== value.title);
-              current.push(e(Goal, {key: value.title, title: value.title, desc: value.desc, reqs: [], select: reqList2}, null));
+              current.push(e(Goal, {key: value.title, title: value.title, desc: value.desc, reqs: []}, null));
             }
           });
 
@@ -111,9 +105,29 @@ $(document).ready(function() {
   displayAll();
   displayTimers();
 
-  // resets form field for timer and goal when modal is shown
-  $('.modal').on('show.bs.modal', function (e) {
-    $(".addForm").trigger("reset");
+  // // resets form field for timer and goal when modal is hidden
+  // $('.modal').on('hidden.bs.modal', function (e) {
+  //   $(".addForm").trigger("reset");
+  // });
+
+  // displays the add goal form
+  $("#addGoalButton").click(function() {
+    var now = new Date().valueOf();
+    rd.render(
+      e(Modal, {key: now + "goal", type: 'goal', header: "New Goal", requirements: requirements, title: "", desc: ""}),
+      document.getElementById('addModals')
+    );
+    $('#goalModal').modal('show');
+  });
+
+  // displays the add timer form
+  $("#addTimerButton").click(function() {
+    var now = new Date().valueOf();
+    rd.render(
+      e(Modal, {key: now + "timer", type: 'timer', header: "New Timer", requirements: null, title: "", desc: ""}),
+      document.getElementById('addModals')
+    );
+    $('#timerModal').modal('show');
   });
 
   // adds the goal to the database
@@ -122,10 +136,24 @@ $(document).ready(function() {
     var title = formArray[0]["value"];
     var desc = formArray[1]["value"];
     var reqs = [];
+    console.log(title + " " + desc);
     $(".checkReq:checked").each(function() {
       reqs.push($(this).val());
     });
     add(title, desc, reqs, displayAll);
+  });
+
+  $(document).on("click", "#editGoalSave", function() {
+    var formArray = $("#editGoalForm").serializeArray();
+    var title = formArray[0]["value"];
+    var desc = formArray[1]["value"];
+    var old = $(this).parents(".modal-dialog").find(".modal-title").text();
+    var reqs = [];
+    for (var i = 2; i < formArray.length; i++) {
+      reqs.push(formArray[i]["name"]);
+    }
+    console.log(reqs);
+    editGoal(desc, title, old, reqs, displayAll);
   });
 
   // adds the timer to the database
@@ -144,24 +172,13 @@ $(document).ready(function() {
     $(this).siblings(".reqList").find("li").each(function() {
       $("#" + $(this).text()).prop("checked", true);
     });
-    $('#goalModal').modal('show');
-    $("#skillText").val(title);
-    $("#descText").val(desc);
-  });
-
-  //hides edit goal form
-  $(document).on("click", ".cancelButton", function() {
-    hideAll($(this), ".goal", ".hidden", ".shown");
-  });
-
-  //show edit timer form
-  $(document).on("click", ".editTimer", function() {
-    hideAll($(this), ".timer", ".shown", ".hidden");
-  });
-
-  //hides edit timer form
-  $(document).on("click", ".editTimerCancel", function() {
-    hideAll($(this), ".timer", ".hidden", ".shown");
+    var currentReqs = requirements.filter(x => x.props.value != title);
+    var now = new Date().valueOf();
+    rd.render(
+      e(Modal, {key: now + "edit", type: 'editGoal', header: title, requirements: currentReqs, title: title, desc: desc}),
+      document.getElementById("editModals")
+    );
+    $('#editGoalModal').modal('show');
   });
 
   //edits timer
