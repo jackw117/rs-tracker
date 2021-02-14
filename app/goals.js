@@ -2,10 +2,8 @@ const react = require('react');
 const rd = require('react-dom');
 const $ = require('jquery');
 const bootstrap = require('bootstrap');
-const sqlite3 = require('sqlite3').verbose();
-const db = new sqlite3.Database('goals.db');
 const {Goal, Timer, Requirement, Modal} = require('./components.js');
-const {add, del, remove, complete, addTimer, editTimer, create, editGoal} = require('./dbFunctions.js');
+const {add, del, complete, addTimer, editTimer, create, editGoal, getGoals, getReqs, getTimers} = require('./dbFunctions.js');
 
 const e = react.createElement;
 const interval = 1000*60*15;
@@ -14,6 +12,7 @@ $(document).ready(function() {
   // creates the database
   create();
 
+  var titles = [];
   var requirements = [];
 
   //display all current goals
@@ -21,101 +20,86 @@ $(document).ready(function() {
     var current = [];
     var future = [];
     requirements = [];
-    var titles = [];
+    titles = [];
     var map = new Map();
     var descMap = new Map();
 
-    db.serialize(function() {
-      // builds out the requirement selection list from the titles in the goals database
-      db.all("SELECT title, desc FROM goals ORDER BY title ASC", function(err, rows) {
-        if (rows != null) {
-          rows.forEach(function(row) {
-            requirements.push(e(Requirement, {key: row.title, value: row.title, checked: false}))
-            titles.push(row);
-            descMap.set(row.title, row.desc);
-          });
-        }
-      });
-
-      db.all("SELECT parent, child FROM reqs", function(err, rows) {
-        if (rows != null) {
-          // creates map of parent goals to their requirements
-          rows.forEach(function(row) {
-            if (map.has(row.parent)) {
-              var temp = map.get(row.parent);
-              temp.push(row.child);
-              map.set(row.parent, temp);
-            } else {
-              map.set(row.parent, [row.child]);
-            }
-          });
-
-          // builds out the goals with dependencies to be added to the futureList section
-          map.forEach(function(value, key) {
-            future.push(e(Goal, {key: key, title: key, reqs: value, desc: descMap.get(key)}, null));
-          });
-
-          // builds out the goals to add to the currentList section based on which ones are not in the reqs table
-          titles.forEach(function(value) {
-            if (!map.has(value.title)) {
-              current.push(e(Goal, {key: value.title, title: value.title, desc: value.desc, reqs: []}, null));
-            }
-          });
-
-          rd.render(
-            current,
-            document.getElementById("currentList")
-          );
-
-          // sort future goals list by number of requirements
-          future.sort(function(a, b){
-            return a.props.reqs.length - b.props.reqs.length;
-          });
-          rd.render(
-        		future,
-        		document.getElementById("futureList")
-        	);
-        }
-      });
+    // builds out the requirement selection list from the titles in the goals database
+    var goals = getGoals();
+    goals.forEach(function(row) {
+      requirements.push(e(Requirement, {key: row.title, value: row.title, checked: false}))
+      titles.push(row);
+      descMap.set(row.title, row.desc);
     });
+
+    // creates map of parent goals to their requirements
+    var reqs = getReqs();
+    reqs.forEach(function(row) {
+      if (map.has(row.parent)) {
+        var temp = map.get(row.parent);
+        temp.push(row.child);
+        map.set(row.parent, temp);
+      } else {
+        map.set(row.parent, [row.child]);
+      }
+    });
+
+    // builds out the goals with dependencies to be added to the futureList section
+    map.forEach(function(value, key) {
+      future.push(e(Goal, {key: key, title: key, reqs: value, desc: descMap.get(key)}, null));
+    });
+
+    // builds out the goals to add to the currentList section based on which ones are not in the reqs table
+    titles.forEach(function(value) {
+      if (!map.has(value.title)) {
+        current.push(e(Goal, {key: value.title, title: value.title, desc: value.desc, reqs: []}, null));
+      }
+    });
+
+    // sort future goals list by number of requirements
+    future.sort(function(a, b){
+      return a.props.reqs.length - b.props.reqs.length;
+    });
+
+    rd.render(
+      current,
+      document.getElementById("currentList")
+    );
+
+    rd.render(
+      future,
+      document.getElementById("futureList")
+    );
   }
 
   function displayTimers() {
     var timers = [];
     var now = new Date();
-    db.all("SELECT name, time FROM timers", function(err, rows) {
-      if (rows != null) {
-        rows.forEach(function(row) {
-          timers.push(e(Timer, {key: row.name, title: row.name, time: row.time}, null));
-          var until = now - new Date(row.time);
-          if (0 <= until && until <= interval) {
-            alert(row.name + " is ready now");
-          }
-        });
-
-        timers = timers.filter(i => i != null);
-        rd.render(
-          timers,
-          document.getElementById("timerList")
-        );
+    var rows = getTimers();
+    rows.forEach(function(row) {
+      timers.push(e(Timer, {key: row.name, title: row.name, time: row.time}, null));
+      var until = now - new Date(row.time);
+      if (0 <= until && until <= interval) {
+        alert(row.name + " is ready now");
       }
     });
+
+    timers = timers.filter(i => i != null);
+    rd.render(
+      timers,
+      document.getElementById("timerList")
+    );
   }
 
   displayAll();
   displayTimers();
-
-  // // resets form field for timer and goal when modal is hidden
-  // $('.modal').on('hidden.bs.modal', function (e) {
-  //   $(".addForm").trigger("reset");
-  // });
 
   // displays the add goal form
   $("#addGoalButton").click(function() {
     var now = new Date().valueOf();
     rd.render(
       e(Modal, {key: now + "goal", type: 'goal', header: "New Goal", requirements: requirements, title: "", desc: ""}),
-      document.getElementById('addModals')
+      document.getElementById('modals')
     );
     $('#goalModal').modal('show');
   });
@@ -125,21 +109,21 @@ $(document).ready(function() {
     var now = new Date().valueOf();
     rd.render(
       e(Modal, {key: now + "timer", type: 'timer', header: "New Timer", requirements: null, title: "", desc: ""}),
-      document.getElementById('addModals')
+      document.getElementById('modals')
     );
     $('#timerModal').modal('show');
   });
 
   // adds the goal to the database
-  $("#goalSave").click(function() {
+  $(document).on("click", "#goalSave", function() {
     var formArray = $("#goalForm").serializeArray();
     var title = formArray[0]["value"];
     var desc = formArray[1]["value"];
     var reqs = [];
-    console.log(title + " " + desc);
     $(".checkReq:checked").each(function() {
-      reqs.push($(this).val());
+      reqs.push($(this).siblings("#" + this.id + "Label").text());
     });
+    console.log(reqs);
     add(title, desc, reqs, displayAll);
   });
 
@@ -169,14 +153,20 @@ $(document).ready(function() {
   $(document).on("click", ".editButton", function() {
     var title = $(this).siblings(".title").text();
     var desc = $(this).siblings(".desc").text();
+    var reqs = [];
     $(this).siblings(".reqList").find("li").each(function() {
-      $("#" + $(this).text()).prop("checked", true);
+      reqs.push($(this).text());
     });
-    var currentReqs = requirements.filter(x => x.props.value != title);
+    var currentTitles = titles.filter(x => x.title != title);
+    var currentReqs = [];
+    currentTitles.forEach(function(req) {
+      var check = reqs.includes(req.title) ? true : false;
+      currentReqs.push(e(Requirement, {key: req.title, value: req.title, checked: check}));
+    });
     var now = new Date().valueOf();
     rd.render(
       e(Modal, {key: now + "edit", type: 'editGoal', header: title, requirements: currentReqs, title: title, desc: desc}),
-      document.getElementById("editModals")
+      document.getElementById("modals")
     );
     $('#editGoalModal').modal('show');
   });
@@ -215,13 +205,6 @@ $(document).ready(function() {
     var desc = $(this).parents(".goal").find(".editDesc").val();
     console.log(desc)
     editGoal(desc, title, displayAll);
-  });
-
-  //removes a requirement from a goal
-  $(document).on("click", ".removeButton", function() {
-    var child = $(this).parents("li").text()
-    var parent = $(this).parents(".notification").find(".title").text();
-    remove(parent, child, displayAll);
   });
 
   setInterval(function() {

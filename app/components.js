@@ -20,7 +20,7 @@ class Requirement extends react.Component {
 
   render() {
     return ([
-      e("label", {key: `${this.props.value}` + "label", htmlFor: `${this.props.value}`}, `${this.props.value}`),
+      e("label", {key: `${this.props.value}` + "label", id: `${this.props.value}` + "Label", htmlFor: `${this.props.value}`}, `${this.props.value}`),
       e("input", {key: `${this.props.value}` + "input", className: "checkReq", name: `${this.props.value}`, type: "checkbox", id: `${this.props.value}`, checked: this.state.checked, onChange: this.toggleChange}, null)
     ]);
   }
