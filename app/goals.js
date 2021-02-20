@@ -2,11 +2,12 @@ const react = require('react');
 const rd = require('react-dom');
 const $ = require('jquery');
 const bootstrap = require('bootstrap');
+const moment = require('moment')
 const {Goal, Timer, Requirement, Modal} = require('./components.js');
-const {add, del, complete, addTimer, editTimer, create, editGoal, getGoals, getReqs, getTimers} = require('./dbFunctions.js');
+const {add, del, complete, addTimer, editTimer, create, editGoal, getGoals, getReqs, getTimers, timerDone} = require('./dbFunctions.js');
 
 const e = react.createElement;
-const interval = 1000*60*15;
+const interval = 1000*60*1;
 
 $(document).ready(function() {
   // creates the database
@@ -74,14 +75,20 @@ $(document).ready(function() {
 
   function displayTimers() {
     var timers = [];
-    var now = new Date();
     var rows = getTimers();
+    var done = [];
     rows.forEach(function(row) {
-      timers.push(e(Timer, {key: row.name, title: row.name, time: row.time}, null));
-      var until = now - new Date(row.time);
-      if (0 <= until && until <= interval) {
-        alert(row.name + " is ready now");
+      var d = moment(new Date(row.time)).format("ddd MMM Do [at] HH:mm");
+      var u = moment(d, "ddd MMM Do [at] HH:mm").fromNow();
+      if (u.includes("ago") && row.done == 0) {
+        done.push(row.name);
+        timerDone(row.name);
       }
+      timers.push(e(Timer, {key: row.name, title: row.name, time: d, desc: row.desc, until: u}, null));
+    });
+
+    done.forEach(function(item) {
+      alert(item + " is done");
     });
 
     timers = timers.filter(i => i != null);
@@ -108,7 +115,7 @@ $(document).ready(function() {
   $("#addTimerButton").click(function() {
     var now = new Date().valueOf();
     rd.render(
-      e(Modal, {key: now + "timer", type: 'timer', header: "New Timer", requirements: null, title: "", desc: ""}),
+      e(Modal, {key: now + "timer", type: 'timer', header: "New Timer", requirements: null}),
       document.getElementById('modals')
     );
     $('#timerModal').modal('show');
@@ -116,47 +123,43 @@ $(document).ready(function() {
 
   // adds the goal to the database
   $(document).on("click", "#goalSave", function() {
-    var formArray = $("#goalForm").serializeArray();
-    var title = formArray[0]["value"];
-    var desc = formArray[1]["value"];
-    var reqs = [];
-    $(".checkReq:checked").each(function() {
-      reqs.push($(this).siblings("#" + this.id + "Label").text());
-    });
-    console.log(reqs);
-    add(title, desc, reqs, displayAll);
-  });
-
-  $(document).on("click", "#editGoalSave", function() {
-    var formArray = $("#editGoalForm").serializeArray();
-    var title = formArray[0]["value"];
-    var desc = formArray[1]["value"];
-    var old = $(this).parents(".modal-dialog").find(".modal-title").text();
-    var reqs = [];
-    for (var i = 2; i < formArray.length; i++) {
-      reqs.push(formArray[i]["name"]);
-    }
-    console.log(reqs);
-    editGoal(desc, title, old, reqs, displayAll);
+    var values = getGoalForm("#goalForm");
+    addToDatabase(values, displayAll, "#goalModal", "#skillText", add);
   });
 
   // adds the timer to the database
-  $("#timerSave").click(function() {
-    var formArray = $("#timerForm").serializeArray();
-    var title = formArray[0]["value"];
-    var date = formArray[1]["value"];
-    var time = formArray[2]["value"];
-    addTimer(title, date + " " + time, displayTimers);
+  $(document).on("click", "#timerSave", function() {
+    var values = getTimerForm("#timerForm");
+    addToDatabase(values, displayTimers, "#timerModal", "#timerTitle", addTimer);
   });
 
-  //show edit goal form
+  // tries to add a timer or goal to the database, and dispays errors if unsuccessful
+  function addToDatabase(values, cb, modalId, titleId, dbFunction) {
+    console.log(values);
+    try {
+      dbFunction(values[0].toLowerCase().trim(), values[1], values[2], cb);
+      $(modalId).modal("hide");
+    }
+    catch (err) {
+      if (err.code == "SQLITE_CONSTRAINT_PRIMARYKEY") {
+        $(titleId).addClass("is-danger");
+        $(modalId).find(".errors").text("That title is already in use.");
+      } else {
+        console.log(err);
+      }
+    }
+  }
+
+  // shows edit goal form
   $(document).on("click", ".editButton", function() {
+    // gets current values to pre-fill the form
     var title = $(this).siblings(".title").text();
     var desc = $(this).siblings(".desc").text();
     var reqs = [];
     $(this).siblings(".reqList").find("li").each(function() {
       reqs.push($(this).text());
     });
+    // determines which requirements to check
     var currentTitles = titles.filter(x => x.title != title);
     var currentReqs = [];
     currentTitles.forEach(function(req) {
@@ -171,12 +174,33 @@ $(document).ready(function() {
     $('#editGoalModal').modal('show');
   });
 
-  //edits timer
-  $(document).on("click", ".editTimerSubmit", function() {
-    var title = $(this).parents(".timer").find("h2").text();
-    var time = $(this).siblings(".editDate").val() + " " + $(this).siblings(".editTime").val();
-    editTimer(title, time, displayTimers);
-    hideAll($(this), ".timer", ".hidden", ".shown");
+  // shows the timer edit form
+  $(document).on("click", ".editTimer", function() {
+    var title = $(this).siblings(".title").text();
+    var d = moment($(this).siblings(".time").text(), "ddd MMM Do [at] HH:mm");
+    var date = moment(d).format("yyyy-MM-D");
+    var time = moment(d).format("HH:mm");
+    var desc = $(this).siblings(".desc").text();
+    var now = new Date().valueOf();
+    rd.render(
+      e(Modal, {key: now + "editTimer", type: 'editTimer', header: title, title: title, date: date, time: time, desc: desc}),
+      document.getElementById("modals")
+    );
+    $('#editTimerModal').modal('show');
+  });
+
+  // edits the goal
+  $(document).on("click", "#editGoalSave", function() {
+    var values = getGoalForm("#editGoalForm");
+    var old = $(this).parents(".modal-dialog").find(".modal-title").text();
+    editGoal(values.desc, values.title, old, values.reqs, displayAll);
+  });
+
+  // edits timer
+  $(document).on("click", "#editTimerSave", function() {
+    var values = getTimerForm("#editTimerForm");
+    var old = $(this).parents(".modal-dialog").find(".modal-title").text();
+    editTimer(values.title, values.date, values.desc, old, displayTimers);
   });
 
   // remove the current goal and all its children
@@ -189,22 +213,13 @@ $(document).ready(function() {
     complete(parent, reqs, displayAll);
   });
 
-  //delete goal or timer
+  // delete goal or timer
   $(document).on("click", ".deleteButton", function() {
     var table = $(this).parents(".column").children("h1").text().includes("Goals") ? "goals" : "timers";
     var name = table == "goals" ? "title" : "name";
     var cb = table == "goals" ? displayAll : displayTimers;
     var value = $(this).siblings("h2").text();
     del(value, table, name, cb);
-  });
-
-  //add requirement to goal
-  $(document).on("click", ".addReqEdit", function() {
-    var title = $(this).parents(".goal").find("h2").text();
-    var child = $(this).siblings(".requireDiv").find("option:selected").val();
-    var desc = $(this).parents(".goal").find(".editDesc").val();
-    console.log(desc)
-    editGoal(desc, title, displayAll);
   });
 
   setInterval(function() {
@@ -219,11 +234,37 @@ $(document).ready(function() {
     displayTimers();
   }, interval);
 
-  function hideAll(current, container, hideClass, showClass) {
-    current.parents(container).find(hideClass).hide();
-    current.parents(container).find(showClass).show();
+  // gets the values from submitting a goal form
+  function getGoalForm(id) {
+    var formArray = $(id).serializeArray();
+    var title = formArray[0]["value"];
+    var desc = formArray[1]["value"];
+    var reqs = [];
+    for (var i = 2; i < formArray.length; i++) {
+      reqs.push(formArray[i]["name"]);
+    }
+    return {
+      0: title,
+      1: desc,
+      2: reqs
+    };
+  }
+
+  // gets the values from submitting a timer form
+  function getTimerForm(id) {
+    var formArray = $(id).serializeArray();
+    var title = formArray[0]["value"];
+    var date = formArray[1]["value"];
+    var time = formArray[2]["value"];
+    var desc = formArray[3]["value"];
+    return {
+      0: title,
+      1: date + " " + time,
+      2: desc
+    };
   }
 });
 
-// TODO: finish migrating functions over to other files, testing
-// TODO: adding a goal with multiple reqs only shows the first req (others appear after refreshing app)
+// TODO: finish migrating functions over to other files
+// TODO: testing
+// TODO: remove callbacks from db functions

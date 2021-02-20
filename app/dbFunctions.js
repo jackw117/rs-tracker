@@ -15,9 +15,9 @@ function add(title, desc, reqs, cb) {
 }
 
 // adds a timer to the database
-function addTimer(title, date, cb) {
-  const stmt = db.prepare("INSERT INTO timers VALUES (?, ?)");
-  stmt.run(title, date);
+function addTimer(title, date, desc, cb) {
+  const stmt = db.prepare("INSERT INTO timers VALUES (?, ?, ?, ?)");
+  stmt.run(title, date, desc, 0);
   cb();
 }
 
@@ -36,7 +36,7 @@ function create() {
   goals.run();
   const reqs = db.prepare("CREATE TABLE IF NOT EXISTS reqs (parent TEXT, child TEXT, FOREIGN KEY (parent) REFERENCES goals(title) ON DELETE CASCADE ON UPDATE CASCADE, FOREIGN KEY (child) REFERENCES goals(title) ON DELETE CASCADE ON UPDATE CASCADE)");
   reqs.run();
-  const timers = db.prepare("CREATE TABLE IF NOT EXISTS timers (name TEXT PRIMARY KEY, time TEXT)");
+  const timers = db.prepare("CREATE TABLE IF NOT EXISTS timers (name TEXT PRIMARY KEY, time TEXT, desc TEXT, done INTEGER)");
   timers.run();
   db.pragma("foreign_keys = ON");
 }
@@ -64,28 +64,34 @@ function editGoal(desc, title, old, reqs, cb) {
 }
 
 // edits the time field of a timer
-function editTimer(title, time, cb) {
-  const stmt = db.prepare("UPDATE timers SET time = (?) WHERE name == (?)");
-  stmt.run(time, title);
+function editTimer(title, time, desc, old, cb) {
+  console.log(title);
+  const stmt = db.prepare("UPDATE timers SET name = (?), time = (?), desc = (?) WHERE name == (?)");
+  stmt.run(title, time, desc, old);
   cb();
 }
 
 function getGoals() {
-  const stmt = db.prepare("SELECT title, desc FROM goals ORDER BY title ASC");
+  const stmt = db.prepare("SELECT * FROM goals ORDER BY title ASC");
   const rows = stmt.all();
   return rows;
 }
 
 function getTimers() {
-  const stmt = db.prepare("SELECT name, time FROM timers");
+  const stmt = db.prepare("SELECT * FROM timers");
   const rows = stmt.all();
   return rows;
 }
 
 function getReqs() {
-  const stmt = db.prepare("SELECT parent, child FROM reqs");
+  const stmt = db.prepare("SELECT * FROM reqs");
   const rows = stmt.all();
   return rows;
 }
 
-module.exports = {add: add, del: del, complete: complete, addTimer: addTimer, editTimer: editTimer, create: create, editGoal: editGoal, getGoals: getGoals, getReqs: getReqs, getTimers: getTimers};
+function timerDone(name) {
+  const stmt = db.prepare("UPDATE timers SET done = 1 WHERE name == (?)");
+  stmt.run(name);
+}
+
+module.exports = {add: add, del: del, complete: complete, addTimer: addTimer, editTimer: editTimer, create: create, editGoal: editGoal, getGoals: getGoals, getReqs: getReqs, getTimers: getTimers, timerDone: timerDone};
