@@ -53,7 +53,7 @@ $(document).ready(function() {
     // builds out the goals to add to the currentList section based on which ones are not in the reqs table
     titles.forEach(function(value) {
       if (!map.has(value.title)) {
-        current.push(e(Goal, {key: value.title, title: value.title, desc: value.desc, reqs: []}, null));
+        current.push(e(Goal, {key: value.title, title: value.title, desc: value.desc}, null));
       }
     });
 
@@ -101,25 +101,26 @@ $(document).ready(function() {
   displayAll();
   displayTimers();
 
-  // displays the add goal form
+  // click the add goal button
   $("#addGoalButton").click(function() {
-    var now = new Date().valueOf();
-    rd.render(
-      e(Modal, {key: now + "goal", type: 'goal', header: "New Goal", requirements: requirements, title: "", desc: ""}),
-      document.getElementById('modals')
-    );
-    $('#goalModal').modal('show');
+    displayModal("goal", "New Goal", requirements, "#goalModal");
   });
 
-  // displays the add timer form
+  // click the add timer button
   $("#addTimerButton").click(function() {
+    displayModal("timer", "New Timer", null, "#timerModal");
+  });
+
+  // displays modal for adding or editing a goal/timer
+  function displayModal(type, header, reqs, modalId, date, time, desc, title) {
     var now = new Date().valueOf();
+    var modal = e(Modal, {key: now + type, type: type, header: header, requirements: reqs, date: date, time: time, desc: desc, title: title});
     rd.render(
-      e(Modal, {key: now + "timer", type: 'timer', header: "New Timer", requirements: null}),
+      modal,
       document.getElementById('modals')
     );
-    $('#timerModal').modal('show');
-  });
+    $(modalId).modal('show');
+  }
 
   // adds the goal to the database
   $(document).on("click", "#goalSave", function() {
@@ -134,11 +135,11 @@ $(document).ready(function() {
   });
 
   // tries to add a timer or goal to the database, and dispays errors if unsuccessful
-  function addToDatabase(values, cb, modalId, titleId, dbFunction) {
-    console.log(values);
+  function addToDatabase(values, display, modalId, titleId, addItem) {
     try {
-      dbFunction(values[0].toLowerCase().trim(), values[1], values[2], cb);
+      addItem(values[0].toLowerCase().trim(), values[1], values[2]);
       $(modalId).modal("hide");
+      display();
     }
     catch (err) {
       if (err.code == "SQLITE_CONSTRAINT_PRIMARYKEY") {
@@ -166,42 +167,38 @@ $(document).ready(function() {
       var check = reqs.includes(req.title) ? true : false;
       currentReqs.push(e(Requirement, {key: req.title, value: req.title, checked: check}));
     });
-    var now = new Date().valueOf();
-    rd.render(
-      e(Modal, {key: now + "edit", type: 'editGoal', header: title, requirements: currentReqs, title: title, desc: desc}),
-      document.getElementById("modals")
-    );
-    $('#editGoalModal').modal('show');
+    displayModal("editGoal", title, currentReqs, "#editGoalModal", null, null, desc, title);
   });
 
   // shows the timer edit form
   $(document).on("click", ".editTimer", function() {
-    var title = $(this).siblings(".title").text();
     var d = moment($(this).siblings(".time").text(), "ddd MMM Do [at] HH:mm");
-    var date = moment(d).format("yyyy-MM-D");
+    var date = moment(d).format("yyyy-MM-DD");
     var time = moment(d).format("HH:mm");
+    console.log("d: " + d + " date: " + date + " time: " + time);
+    var title = $(this).siblings(".title").text();
     var desc = $(this).siblings(".desc").text();
-    var now = new Date().valueOf();
-    rd.render(
-      e(Modal, {key: now + "editTimer", type: 'editTimer', header: title, title: title, date: date, time: time, desc: desc}),
-      document.getElementById("modals")
-    );
-    $('#editTimerModal').modal('show');
+    displayModal("editTimer", title, null, "#editTimerModal", date, time, desc, title);
   });
 
   // edits the goal
   $(document).on("click", "#editGoalSave", function() {
     var values = getGoalForm("#editGoalForm");
-    var old = $(this).parents(".modal-dialog").find(".modal-title").text();
-    editGoal(values.desc, values.title, old, values.reqs, displayAll);
+    editGoalTimer("#editGoalModal", values, editGoal, displayAll);
   });
 
   // edits timer
   $(document).on("click", "#editTimerSave", function() {
     var values = getTimerForm("#editTimerForm");
-    var old = $(this).parents(".modal-dialog").find(".modal-title").text();
-    editTimer(values.title, values.date, values.desc, old, displayTimers);
+    editGoalTimer("#editTimerModal", values, editTimer, displayTimers);
   });
+
+  function editGoalTimer(modalId, values, edit, display) {
+    var old = $(modalId).find(".modal-title").text();
+    edit(values[0], values[1], values[2], old);
+    $(modalId).modal("hide");
+    display();
+  }
 
   // remove the current goal and all its children
   $(document).on("click", '.doneButton', function() {
@@ -210,17 +207,25 @@ $(document).ready(function() {
     $(this).siblings(".reqList").find("li").each(function() {
       reqs.push($(this).text());
     });
-    complete(parent, reqs, displayAll);
+    complete(parent, reqs);
+    displayAll();
   });
 
   // delete goal or timer
-  $(document).on("click", ".deleteButton", function() {
-    var table = $(this).parents(".column").children("h1").text().includes("Goals") ? "goals" : "timers";
-    var name = table == "goals" ? "title" : "name";
-    var cb = table == "goals" ? displayAll : displayTimers;
+  $(document).on("click", ".deleteGoal", function() {
     var value = $(this).siblings("h2").text();
-    del(value, table, name, cb);
+    deleteGoalTimer("goals", "title", value, displayAll);
   });
+
+  $(document).on("click", ".deleteTimer", function() {
+    var value = $(this).siblings("h2").text();
+    deleteGoalTimer("timers", "name", value, displayTimers);
+  });
+
+  function deleteGoalTimer(table, name, value, display) {
+    del(value, table, name);
+    display();
+  }
 
   setInterval(function() {
     var d1 = new Date();
@@ -267,4 +272,3 @@ $(document).ready(function() {
 
 // TODO: finish migrating functions over to other files
 // TODO: testing
-// TODO: remove callbacks from db functions

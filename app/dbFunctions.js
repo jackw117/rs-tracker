@@ -4,30 +4,28 @@ const Database = require('better-sqlite3');
 const db = new Database('goals.db');
 
 // adds a goal to the database
-function add(title, desc, reqs, cb) {
+function add(title, desc, reqs) {
   const stmt = db.prepare("INSERT INTO goals VALUES (?, ?)");
   stmt.run(title, desc);
   const reqStmt = db.prepare("INSERT INTO reqs VALUES (?, ?)");
   reqs.forEach(function(req) {
     reqStmt.run(title, req);
   });
-  cb();
 }
 
 // adds a timer to the database
-function addTimer(title, date, desc, cb) {
+function addTimer(title, date, desc) {
   const stmt = db.prepare("INSERT INTO timers VALUES (?, ?, ?, ?)");
   stmt.run(title, date, desc, 0);
-  cb();
 }
 
 // removes the given goal and each requirement associated with it
-function complete(parent, reqs, cb) {
+function complete(parent, reqs) {
   reqs.forEach(function(req) {
-    del(req, "goals", "title", null);
+    del(req, "goals", "title");
   });
-  del(parent, "reqs", "parent", null);
-  del(parent, "goals", "title", cb);
+  del(parent, "reqs", "parent");
+  del(parent, "goals", "title");
 }
 
 // creates the database if it doesn't already exist
@@ -42,16 +40,13 @@ function create() {
 }
 
 // deletes either a goal or a timer from the corresponding table
-function del(value, table, name, cb) {
+function del(value, table, name) {
   const stmt = db.prepare("DELETE FROM " + table + " WHERE " + name + " == (?)");
   stmt.run(value);
-  if (cb) {
-    cb();
-  }
 }
 
 // updates the given columns in a goal
-function editGoal(desc, title, old, reqs, cb) {
+function editGoal(title, desc, reqs, old) {
   const updateStmt = db.prepare("UPDATE goals SET desc = (?), title = (?) WHERE title == (?)");
   updateStmt.run(desc, title, old);
   const delStmt = db.prepare("DELETE FROM reqs WHERE parent == (?)");
@@ -60,15 +55,12 @@ function editGoal(desc, title, old, reqs, cb) {
   reqs.forEach(function(req) {
     insertStmt.run(title, req);
   });
-  cb();
 }
 
 // edits the time field of a timer
-function editTimer(title, time, desc, old, cb) {
-  console.log(title);
-  const stmt = db.prepare("UPDATE timers SET name = (?), time = (?), desc = (?) WHERE name == (?)");
+function editTimer(title, time, desc, old) {
+  const stmt = db.prepare("UPDATE timers SET name = (?), time = (?), desc = (?), done = 0 WHERE name == (?)");
   stmt.run(title, time, desc, old);
-  cb();
 }
 
 function getGoals() {

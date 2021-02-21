@@ -1,5 +1,4 @@
 const react = require('react');
-const rd = require('react-dom');
 const e = react.createElement;
 
 class Requirement extends react.Component {
@@ -29,9 +28,7 @@ class Goal extends react.Component {
   render() {
     var list = [];
     react.Children.map(this.props.reqs, item => {
-      list.push(e("li", {key: item},
-        item, e('input', {className: "removeButton hidden", type: "button", value: "Remove requirement"}, null)
-      ));
+      list.push(e("li", {key: item}, item));
     });
 
     return (
@@ -41,7 +38,7 @@ class Goal extends react.Component {
         e('ul', {className: 'reqList subtitle is-size-6 is-uppercase'}, list),
         e('input', {className: 'editButton button is-danger', type: 'button', value: 'Edit'}, null),
         e('input', {className: 'doneButton button', type: 'button', value: 'Complete'}, null),
-        e('button', {className: "delete deleteButton"}, null)
+        e('button', {className: "delete deleteGoal"}, null)
       )
     );
   }
@@ -52,7 +49,7 @@ class Timer extends react.Component {
     return (
       e('div', {className: 'notification is-link is-light timer'},
         e('h2', {className: 'title is-uppercase is-size-5'}, this.props.title),
-        e('button', {className: "delete deleteButton hidden"}, null),
+        e('button', {className: "delete deleteTimer"}, null),
         e('p', {className: 'subtitle is-size-6 time'}, this.props.time),
         e('p', {className: 'subtitle is-size-6 until'}, this.props.until),
         e('p', {className: 'desc'}, this.props.desc),
