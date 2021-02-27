@@ -16,28 +16,19 @@
     ]
   },
   "scripts": {
-    "postinstall": "install-app-deps",
     "start": "electron .",
-    "test": "qunit",
     "release": "build"
   },
   "dependencies": {
     "better-sqlite3": "^7.1.2",
     "bootstrap": "^4.6.0",
     "bulma": "^0.9.0",
-    "core-js": "^3.8.3",
-    "electron-db": "^1.0.0",
     "jquery": "^3.5.1",
     "moment": "^2.27.0",
     "react": "^16.13.1",
     "react-dom": "^16.13.1"
   },
   "devDependencies": {
-    "@babel/core": "^7.11.4",
-    "babel-register": "^6.26.0",
-    "electron": "^9.4.2",
-    "electron-builder": "^22.8.0",
-    "electron-packager": "^15.2.0",
-    "qunit": "^2.14.0"
+    "electron": "^9.4.2"
   }
 }

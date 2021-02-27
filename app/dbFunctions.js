@@ -1,5 +1,3 @@
-// const sqlite3 = require('sqlite3').verbose();
-// const db = new sqlite3.Database('goals.db');
 const Database = require('better-sqlite3');
 const db = new Database('goals.db');
 

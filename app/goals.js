@@ -142,12 +142,7 @@ $(document).ready(function() {
       display();
     }
     catch (err) {
-      if (err.code == "SQLITE_CONSTRAINT_PRIMARYKEY") {
-        $(titleId).addClass("is-danger");
-        $(modalId).find(".errors").text("That title is already in use.");
-      } else {
-        console.log(err);
-      }
+      errorCatch(err, titleId, modalId)
     }
   }
 
@@ -181,23 +176,45 @@ $(document).ready(function() {
     displayModal("editTimer", title, null, "#editTimerModal", date, time, desc, title);
   });
 
+  // function for handling certain key presses
+  $(document).keydown(function(e) {
+    // hide the current modal if the user hits the ESC key
+    if (e.keyCode == 27) {
+      $(".modal").modal("hide");
+    }
+    // submit the current modal if the user hits the ENTER key
+    else if (e.keyCode == 13) {
+      e.preventDefault();
+      if ($(".modal").is(":visible")) {
+        // clicks the save button which triggers the id's on click event
+        $(".saveButton").click();
+      }
+    }
+  });
+
   // edits the goal
   $(document).on("click", "#editGoalSave", function() {
     var values = getGoalForm("#editGoalForm");
-    editGoalTimer("#editGoalModal", values, editGoal, displayAll);
+    editGoalTimer("#editGoalModal", values, editGoal, displayAll, "#skillText");
   });
 
   // edits timer
   $(document).on("click", "#editTimerSave", function() {
     var values = getTimerForm("#editTimerForm");
-    editGoalTimer("#editTimerModal", values, editTimer, displayTimers);
+    editGoalTimer("#editTimerModal", values, editTimer, displayTimers, "#timerTitle");
   });
 
-  function editGoalTimer(modalId, values, edit, display) {
-    var old = $(modalId).find(".modal-title").text();
-    edit(values[0], values[1], values[2], old);
-    $(modalId).modal("hide");
-    display();
+  // function to edit either a goal or a timer
+  function editGoalTimer(modalId, values, edit, display, titleId) {
+    try {
+      var old = $(modalId).find(".modal-title").text();
+      edit(values[0], values[1], values[2], old);
+      $(modalId).modal("hide");
+      display();
+    }
+    catch (err) {
+      errorCatch(err, titleId, modalId)
+    }
   }
 
   // remove the current goal and all its children
@@ -211,22 +228,25 @@ $(document).ready(function() {
     displayAll();
   });
 
-  // delete goal or timer
+  // delete goal
   $(document).on("click", ".deleteGoal", function() {
     var value = $(this).siblings("h2").text();
     deleteGoalTimer("goals", "title", value, displayAll);
   });
 
+  // delete timer
   $(document).on("click", ".deleteTimer", function() {
     var value = $(this).siblings("h2").text();
     deleteGoalTimer("timers", "name", value, displayTimers);
   });
 
+  // function for deleting a goal/timer
   function deleteGoalTimer(table, name, value, display) {
     del(value, table, name);
     display();
   }
 
+  // sets the interval to call the displayTimers function to refresh the times
   setInterval(function() {
     var d1 = new Date();
     $(".time").each(function() {
@@ -267,6 +287,16 @@ $(document).ready(function() {
       1: date + " " + time,
       2: desc
     };
+  }
+
+  // display errors on modal submit
+  function errorCatch(err, titleId, modalId) {
+    if (err.code == "SQLITE_CONSTRAINT_PRIMARYKEY") {
+      $(titleId).addClass("is-danger");
+      $(modalId).find(".errors").text("That title is already in use.");
+    } else {
+      console.log(err);
+    }
   }
 });
 

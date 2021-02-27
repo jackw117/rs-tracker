@@ -101,8 +101,8 @@ class Modal extends react.Component {
     var form = Array.isArray(this.props.requirements) ? goalForm : timerForm;
 
     return (
-      e('div', {className: 'modal', id: this.props.type + "Modal", role: "dialog"},
-        e('div', {className: "modal-dialog"},
+      e('div', {className: 'modal fade', id: this.props.type + "Modal", role: "dialog"},
+        e('div', {className: "modal-dialog modal-dialog-centered"},
           e('div', {className: "modal-content"},
             e('div', {className: "modal-header"},
               e('h4', {className: "modal-title"}, this.props.header)
@@ -113,7 +113,7 @@ class Modal extends react.Component {
               )
             ),
             e('div', {className: "modal-footer"},
-              e('button', {id: this.props.type + "Save", type: "button", className: "btn btn-default"}, "Save"),
+              e('button', {id: this.props.type + "Save", type: "button", className: "btn btn-default saveButton"}, "Save"),
               e('button', {id: this.props.type + "Close", type: "button", className: "btn btn-default", "data-dismiss": "modal"}, "Close")
             )
           )
