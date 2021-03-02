@@ -1,8 +1,9 @@
-@import '../node_modules/bootstrap/dist/css/bootstrap.min.css';
+/* @import '../node_modules/bootstrap/dist/css/bootstrap.min.css'; */
 
 body {
   padding: 10px;
   padding-right: 0 !important;
+  background-color: #eeeeee;
 }
 
 label {
@@ -17,20 +18,57 @@ textarea {
   display: inline;
 }
 
+.card-content {
+  background-color: #f8f8f8 !important;
+}
+
+.card-footer {
+  border-top: none !important;
+}
+
+.card-header {
+  padding: 15px;
+  letter-spacing: 1.4px;
+}
+
 .formButtons {
   margin-top: 20px;
+}
+
+.card {
+  margin-bottom: 20px;
 }
 
 .hidden {
   display: none;
 }
 
+.message {
+  box-shadow: 0em 0.5em 2em rgba(10,10,10,.5)
+}
+
 .modal-backdrop {
   z-index: 0;
 }
 
+.reqButton {
+  margin: 10px;
+}
+
+.spanText {
+  font-weight: bold;
+}
+
 #currentReqs li {
   margin-left: 20px;
+}
+
+#messageDiv {
+  position: fixed;
+  bottom: 0;
+  z-index: 1;
+  right: 0;
+  left: 0;
 }
 
 #requireList {

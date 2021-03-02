@@ -18,8 +18,7 @@ class Requirement extends react.Component {
 
   render() {
     return ([
-      e("label", {key: this.props.value + "label", id: this.props.value + "Label", htmlFor: this.props.value}, this.props.value),
-      e("input", {key: this.props.value + "input", className: "checkReq", name: this.props.value, type: "checkbox", id: this.props.value, checked: this.state.checked, onChange: this.toggleChange}, null)
+      e("button", {key: this.props.value + "button", className: "button reqButton", type: "button"}, this.props.value)
     ]);
   }
 }
@@ -32,13 +31,21 @@ class Goal extends react.Component {
     });
 
     return (
-      e('div', {className: 'notification is-link is-light goal'},
-        e('h2', {className: 'title is-uppercase is-size-5'}, this.props.title),
-        e('p', {className: 'desc'}, this.props.desc),
-        e('ul', {className: 'reqList subtitle is-size-6 is-uppercase'}, list),
-        e('input', {className: 'editButton button is-danger', type: 'button', value: 'Edit'}, null),
-        e('input', {className: 'doneButton button', type: 'button', value: 'Complete'}, null),
-        e('button', {className: "delete deleteGoal"}, null)
+      e('div', {className: 'card goal'},
+        e('header', {className: 'card-header'},
+          e('h2', {className: 'title is-uppercase is-size-5'}, this.props.title)
+        ),
+        e('div', {className: 'card-content'},
+          e('div', {className: 'content'},
+            e('p', {className: 'desc'}, this.props.desc),
+            e('ul', {className: 'reqList subtitle is-size-6 is-uppercase'}, list)
+          )
+        ),
+        e('footer', {className: 'card-footer'},
+          e('a', {className: 'editButton card-footer-item'}, "Edit"),
+          e('a', {className: 'doneButton card-footer-item'}, "Complete"),
+          e('a', {className: "deleteGoal card-footer-item"}, "Delete")
+        )
       )
     );
   }
@@ -47,13 +54,54 @@ class Goal extends react.Component {
 class Timer extends react.Component {
   render() {
     return (
-      e('div', {className: 'notification is-link is-light timer'},
-        e('h2', {className: 'title is-uppercase is-size-5'}, this.props.title),
-        e('button', {className: "delete deleteTimer"}, null),
-        e('p', {className: 'subtitle is-size-6 time'}, this.props.time),
-        e('p', {className: 'subtitle is-size-6 until'}, this.props.until),
-        e('p', {className: 'desc'}, this.props.desc),
-        e('input', {className: 'editTimer button is-danger', type: 'button', value: 'Edit'}, null)
+      e('div', {className: 'card timer'},
+        e('header', {className: 'card-header'},
+          e('h2', {className: 'title is-uppercase is-size-5'}, this.props.title)
+        ),
+        e('div', {className: 'card-content'},
+          e('p', {className: 'subtitle is-size-6 time'}, this.props.time),
+          e('p', {className: 'subtitle is-size-6 until'}, this.props.until),
+          e('p', {className: 'desc'}, this.props.desc)
+        ),
+        e('footer', {className: 'card-footer'},
+          e('a', {className: 'editTimer card-footer-item'}, "Edit"),
+          e('a', {className: "deleteTimer card-footer-item"}, "Delete")
+        )
+      )
+    );
+  }
+}
+
+class Message extends react.Component {
+  render() {
+    // formatting for the contents of the message
+    var messageBody = []
+    var i;
+    var space = ", ";
+    var len = this.props.titles.length;
+    for (i = 0; i < len - 1; i++) {
+      if (i == len - 2) {
+        space = " ";
+      }
+      messageBody.push(e('span', {key: this.props.titles[i], className: "spanText"}, this.props.titles[i]));
+      messageBody.push(e('span', {key: "space" + i}, space));
+    }
+    if (len > 1) {
+      messageBody.push(e('span', {key: "space" + i}, "and "));
+    }
+    messageBody.push(e('span', {key: this.props.titles[i], className: "spanText"}, this.props.titles[i]));
+    var title = len == 1 ? "1 timer has gone off." : this.props.titles.length + " timers have gone off."
+    var messageEnd = len == 1 ? " is ready. " : " are ready.";
+
+    return (
+      e('article', {className: 'message'},
+        e('div', {className: 'message-header'},
+          e('p', {className: 'messageTitle'}, title),
+          e('button', {className: 'delete closeMessage'}, null)
+        ),
+        e('div', {className: 'message-body'},
+          e('p', {className: 'messageText'}, messageBody, messageEnd)
+        )
       )
     );
   }
@@ -81,7 +129,7 @@ class Modal extends react.Component {
       e('input', {type: "text", id: "skillText", className: "input is-primary", key: "skillTextInput", name: "title", value: this.state.title, onChange: this.handleChange.bind(this)}, null),
       e('p', {className: "errors", key: "titleError"}, null),
       e('label', {htmlFor: "descText", key: "descTextLabel"}, "Description"),
-      e('textarea', {id: "descText", key: "descTextInput", name: "desc", value: this.state.desc, onChange: this.handleChange.bind(this)}, null),
+      e('input', {type: "text", id: "descText", className: "input is-primary", key: "descTextInput", name: "desc", value: this.state.desc, onChange: this.handleChange.bind(this)}, null),
       e('label', {key: "requireListLabel"}, "Requirements"),
       this.props.requirements
     ];
@@ -95,32 +143,33 @@ class Modal extends react.Component {
       e('label', {htmlFor: "timerTime", key: "timerTimeLabel"}, "Time"),
       e('input', {type: "time", id: "timerTime", name: "time", className: "input is-primary", key: "timerTimeInput", value: this.state.time, onChange: this.handleChange.bind(this)}, null),
       e('label', {htmlFor: "timerDesc", key: "timerDescLabel"}, "Description"),
-      e('textarea', {id: "timerDesc", key: "timerDescInput", name: "desc", value: this.state.desc, onChange: this.handleChange.bind(this)}, null)
+      e('input', {type: "text", id: "timerDesc", className: "input is-primary", key: "timerDescInput", name: "desc", value: this.state.desc, onChange: this.handleChange.bind(this)}, null)
     ];
 
     var form = Array.isArray(this.props.requirements) ? goalForm : timerForm;
 
     return (
-      e('div', {className: 'modal fade', id: this.props.type + "Modal", role: "dialog"},
-        e('div', {className: "modal-dialog modal-dialog-centered"},
-          e('div', {className: "modal-content"},
-            e('div', {className: "modal-header"},
-              e('h4', {className: "modal-title"}, this.props.header)
-            ),
-            e('div', {className: "modal-body"},
+      e('div', {className: 'modal', id: this.props.type + "Modal"},
+        e('div', {className: 'modal-background'}, null),
+        e('div', {className: 'modal-card'},
+          e('header', {className: 'modal-card-head'},
+            e('h2', {className: "modal-title"}, this.props.header)
+          ),
+          e('section', {className: 'modal-card-body'},
+            e('div', {className: 'content'},
               e('form', {className: "addForm", id: this.props.type + "Form"},
                 form
               )
-            ),
-            e('div', {className: "modal-footer"},
-              e('button', {id: this.props.type + "Save", type: "button", className: "btn btn-default saveButton"}, "Save"),
-              e('button', {id: this.props.type + "Close", type: "button", className: "btn btn-default", "data-dismiss": "modal"}, "Close")
             )
+          ),
+          e('footer', {className: 'modal-card-foot'},
+            e('button', {id: this.props.type + "Save", className: "button is-success saveButton"}, "Save"),
+            e('button', {id: this.props.type + "Close", className: "button closeModal"}, "Close")
           )
-        )
+        ),
       )
     );
   }
 }
 
-module.exports = {Goal: Goal, Timer: Timer, Requirement: Requirement, Modal: Modal};
+module.exports = {Goal: Goal, Timer: Timer, Requirement: Requirement, Modal: Modal, Message: Message};

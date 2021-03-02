@@ -1,9 +1,9 @@
 const react = require('react');
 const rd = require('react-dom');
 const $ = require('jquery');
-const bootstrap = require('bootstrap');
+// const bootstrap = require('bootstrap');
 const moment = require('moment')
-const {Goal, Timer, Requirement, Modal} = require('./components.js');
+const {Goal, Timer, Requirement, Modal, Message} = require('./components.js');
 const {add, del, complete, addTimer, editTimer, create, editGoal, getGoals, getReqs, getTimers, timerDone} = require('./dbFunctions.js');
 
 const e = react.createElement;
@@ -87,9 +87,12 @@ $(document).ready(function() {
       timers.push(e(Timer, {key: row.name, title: row.name, time: d, desc: row.desc, until: u}, null));
     });
 
-    done.forEach(function(item) {
-      alert(item + " is done");
-    });
+    if (done.length > 0) {
+      rd.render(
+        e(Message, {key: done, titles: done}),
+        document.getElementById("messages")
+      );
+    }
 
     timers = timers.filter(i => i != null);
     rd.render(
@@ -119,8 +122,37 @@ $(document).ready(function() {
       modal,
       document.getElementById('modals')
     );
-    $(modalId).modal('show');
+    $(modalId).addClass('is-active');
   }
+
+  // hides modal on a click outside of the modal or on the close modal button
+  $(document).on("click", ".modal-background, .closeModal", function() {
+    $(".modal").removeClass('is-active');
+  });
+
+  // function for handling certain key presses
+  $(document).keydown(function(e) {
+    // hide the current modal if the user hits the ESC key
+    if (e.keyCode == 27) {
+      $(".modal").removeClass('is-active');
+    }
+    // submit the current modal if the user hits the ENTER key
+    else if (e.keyCode == 13) {
+      e.preventDefault();
+      if ($(".modal").is(":visible")) {
+        // clicks the save button which triggers the id's on click event
+        $(".saveButton").click();
+      }
+    }
+  });
+
+  $(document).on("click", ".reqButton", function() {
+    if ($(this).hasClass("is-primary")) {
+      $(this).removeClass("is-primary");
+    } else {
+      $(this).addClass("is-primary");
+    }
+  });
 
   // adds the goal to the database
   $(document).on("click", "#goalSave", function() {
@@ -138,7 +170,7 @@ $(document).ready(function() {
   function addToDatabase(values, display, modalId, titleId, addItem) {
     try {
       addItem(values[0].toLowerCase().trim(), values[1], values[2]);
-      $(modalId).modal("hide");
+      $(".modal").removeClass('is-active');
       display();
     }
     catch (err) {
@@ -149,10 +181,10 @@ $(document).ready(function() {
   // shows edit goal form
   $(document).on("click", ".editButton", function() {
     // gets current values to pre-fill the form
-    var title = $(this).siblings(".title").text();
-    var desc = $(this).siblings(".desc").text();
+    var title = $(this).parents(".goal").find(".title").text();
+    var desc = $(this).parents(".goal").find(".desc").text();
     var reqs = [];
-    $(this).siblings(".reqList").find("li").each(function() {
+    $(this).parents(".goal").find("li").each(function() {
       reqs.push($(this).text());
     });
     // determines which requirements to check
@@ -167,30 +199,15 @@ $(document).ready(function() {
 
   // shows the timer edit form
   $(document).on("click", ".editTimer", function() {
-    var d = moment($(this).siblings(".time").text(), "ddd MMM Do [at] HH:mm");
+    var d = moment($(this).parents(".timer").find(".time").text(), "ddd MMM Do [at] HH:mm");
     var date = moment(d).format("yyyy-MM-DD");
     var time = moment(d).format("HH:mm");
     console.log("d: " + d + " date: " + date + " time: " + time);
-    var title = $(this).siblings(".title").text();
-    var desc = $(this).siblings(".desc").text();
+    var title = $(this).parents(".timer").find(".title").text();
+    var desc = $(this).parents(".timer").find(".desc").text();
     displayModal("editTimer", title, null, "#editTimerModal", date, time, desc, title);
   });
 
-  // function for handling certain key presses
-  $(document).keydown(function(e) {
-    // hide the current modal if the user hits the ESC key
-    if (e.keyCode == 27) {
-      $(".modal").modal("hide");
-    }
-    // submit the current modal if the user hits the ENTER key
-    else if (e.keyCode == 13) {
-      e.preventDefault();
-      if ($(".modal").is(":visible")) {
-        // clicks the save button which triggers the id's on click event
-        $(".saveButton").click();
-      }
-    }
-  });
 
   // edits the goal
   $(document).on("click", "#editGoalSave", function() {
@@ -209,7 +226,7 @@ $(document).ready(function() {
     try {
       var old = $(modalId).find(".modal-title").text();
       edit(values[0], values[1], values[2], old);
-      $(modalId).modal("hide");
+      $(".modal").removeClass('is-active');
       display();
     }
     catch (err) {
@@ -230,21 +247,29 @@ $(document).ready(function() {
 
   // delete goal
   $(document).on("click", ".deleteGoal", function() {
-    var value = $(this).siblings("h2").text();
+    var value = $(this).parents(".goal").find(".title").text();
     deleteGoalTimer("goals", "title", value, displayAll);
   });
 
   // delete timer
   $(document).on("click", ".deleteTimer", function() {
-    var value = $(this).siblings("h2").text();
+    var value = $(this).parents(".timer").find(".title").text();
     deleteGoalTimer("timers", "name", value, displayTimers);
   });
 
   // function for deleting a goal/timer
   function deleteGoalTimer(table, name, value, display) {
+    console.log(value);
     del(value, table, name);
     display();
   }
+
+  $(document).on("click", ".closeMessage", function() {
+    rd.render(
+      [],
+      document.getElementById("messages")
+    );
+  });
 
   // sets the interval to call the displayTimers function to refresh the times
   setInterval(function() {
@@ -300,5 +325,4 @@ $(document).ready(function() {
   }
 });
 
-// TODO: finish migrating functions over to other files
-// TODO: testing
+// TODO: package
