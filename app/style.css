@@ -1,5 +1,3 @@
-/* @import '../node_modules/bootstrap/dist/css/bootstrap.min.css'; */
-
 body {
   padding: 10px;
   padding-right: 0 !important;
@@ -8,14 +6,6 @@ body {
 
 label {
   display: block;
-}
-
-textarea {
-  width: -webkit-fill-available;
-}
-
-.addDiv {
-  display: inline;
 }
 
 .card-content {
@@ -29,6 +19,17 @@ textarea {
 .card-header {
   padding: 15px;
   letter-spacing: 1.4px;
+}
+
+.checkLabel {
+  margin: 10px;
+  -webkit-user-select: none;  /* Chrome all / Safari all */
+  -moz-user-select: none;     /* Firefox all */
+  -ms-user-select: none;      /* IE 10+ */
+}
+
+.checkReq {
+  display: none;
 }
 
 .formButtons {
@@ -51,12 +52,19 @@ textarea {
   z-index: 0;
 }
 
-.reqButton {
-  margin: 10px;
+.checkReq:checked + .checkLabel {
+  background-color: #3e8ed0;
 }
 
 .spanText {
   font-weight: bold;
+}
+
+.topColor {
+  width: 100%;
+  height: 10px;
+  border-top-left-radius: .25rem;
+  border-top-right-radius: .25rem;
 }
 
 #currentReqs li {
@@ -69,6 +77,14 @@ textarea {
   z-index: 1;
   right: 0;
   left: 0;
+}
+
+#navbar {
+  position: sticky !important;
+  top: 0;
+  left: 0;
+  right: 0;
+  margin-bottom: 20px;
 }
 
 #requireList {

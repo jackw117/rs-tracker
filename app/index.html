@@ -9,24 +9,48 @@
 
   </head>
   <body>
+    <nav id="navbar" class="navbar" role="navigation" aria-label="main navigation">
+      <div class="navbar-brand">
+        <div class="navbar-item">
+          <h1>OSRS Goal Tracker</h1>
+          <img src="../src/Gnome_child_chathead.png">
+        </div>
+
+        <a class="navbar-item" id="addGoalButton">Add Goal</a>
+        <a class="navbar-item" id="addTimerButton">Add Timer</a>
+      </div>
+      <div class="navbar-menu">
+        <div class="navbar-end">
+          <div id="accountDiv" class="navbar-item has-dropdown is-hoverable">
+            <a id="accountTitle" class="navbar-link">
+              Account
+            </a>
+
+            <div class="navbar-dropdown">
+              <a id="addAccountButton" class="navbar-item">
+                Add Account
+              </a>
+              <a id="switchAccountButton" class="navbar-item">
+                Switch Accounts
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </nav>
+
     <div class="columns" id="messageDiv">
       <div class="column"></div>
       <div class="column is-two-thirds" id="messages"></div>
       <div class="column"></div>
     </div>
 
-
     <div id="modals"></div>
-
-    <div class="addDiv">
-      <input type="button" class="button is-primary addButton" id="addGoalButton" value="Add Goal">
-      <input type="button" class="button is-primary addButton" id="addTimerButton" value="Add Timer">
-    </div>
 
     <div class="columns">
       <div class="column"></div>
       <div class="column is-6">
-        <h1>Current Goals</h1>
+        <!-- <h1>Current Goals</h1> -->
         <div id="currentList"></div>
       </div>
       <div class="column"></div>
@@ -36,7 +60,7 @@
     <div class="columns">
       <div class="column"></div>
       <div class="column is-6">
-        <h1>Future Goals</h1>
+        <!-- <h1>Future Goals</h1> -->
         <div id="futureList"></div>
       </div>
       <div class="column"></div>

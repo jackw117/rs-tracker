@@ -1,20 +1,28 @@
 const react = require('react');
 const rd = require('react-dom');
 const $ = require('jquery');
-// const bootstrap = require('bootstrap');
 const moment = require('moment')
-const {Goal, Timer, Requirement, Modal, Message} = require('./components.js');
-const {add, del, complete, addTimer, editTimer, create, editGoal, getGoals, getReqs, getTimers, timerDone} = require('./dbFunctions.js');
+const component = require('./components.js');
+const db = require('./dbFunctions.js');
 
 const e = react.createElement;
 const interval = 1000*60*1;
 
 $(document).ready(function() {
   // creates the database
-  create();
+  db.create();
 
   var titles = [];
   var requirements = [];
+
+  var account = db.getAccountMain();
+  console.log(account)
+  if (account) {
+    displayAll();
+    displayTimers();
+  } else {
+    // TODO: display un closable modal telling user to create account
+  }
 
   //display all current goals
   function displayAll() {
@@ -25,16 +33,22 @@ $(document).ready(function() {
     var map = new Map();
     var descMap = new Map();
 
+    rd.render(
+      e('span', {}, account.name),
+      document.getElementById('accountTitle')
+    );
+
     // builds out the requirement selection list from the titles in the goals database
-    var goals = getGoals();
+    var goals = db.getGoals(account.ID);
     goals.forEach(function(row) {
-      requirements.push(e(Requirement, {key: row.title, value: row.title, checked: false}))
+      requirements.push(e(component.Requirement, {key: row.title, value: row.ID, checked: false, type: "checkbox", name: row.title, label: row.title}))
       titles.push(row);
       descMap.set(row.title, row.desc);
     });
 
     // creates map of parent goals to their requirements
-    var reqs = getReqs();
+    var reqs = db.getReqs(account.ID);
+    console.log(reqs)
     reqs.forEach(function(row) {
       if (map.has(row.parent)) {
         var temp = map.get(row.parent);
@@ -47,13 +61,13 @@ $(document).ready(function() {
 
     // builds out the goals with dependencies to be added to the futureList section
     map.forEach(function(value, key) {
-      future.push(e(Goal, {key: key, title: key, reqs: value, desc: descMap.get(key)}, null));
+      future.push(e(component.Goal, {key: key, title: key, reqs: value, desc: descMap.get(key), gradient: "to right, #1f1c2c, #928dab"}, null));
     });
 
     // builds out the goals to add to the currentList section based on which ones are not in the reqs table
     titles.forEach(function(value) {
       if (!map.has(value.title)) {
-        current.push(e(Goal, {key: value.title, title: value.title, desc: value.desc}, null));
+        current.push(e(component.Goal, {key: value.title, title: value.title, desc: value.desc, gradient: "to right, #7f7fd5, #86a8e7, #91eae4"}, null));
       }
     });
 
@@ -75,21 +89,21 @@ $(document).ready(function() {
 
   function displayTimers() {
     var timers = [];
-    var rows = getTimers();
+    var rows = db.getTimers();
     var done = [];
     rows.forEach(function(row) {
       var d = moment(new Date(row.time)).format("ddd MMM Do [at] HH:mm");
       var u = moment(d, "ddd MMM Do [at] HH:mm").fromNow();
       if (u.includes("ago") && row.done == 0) {
         done.push(row.name);
-        timerDone(row.name);
+        db.timerDone(row.name);
       }
-      timers.push(e(Timer, {key: row.name, title: row.name, time: d, desc: row.desc, until: u}, null));
+      timers.push(e(component.Timer, {key: row.name, title: row.name, time: d, desc: row.desc, until: u}, null));
     });
 
     if (done.length > 0) {
       rd.render(
-        e(Message, {key: done, titles: done}),
+        e(component.Message, {key: done, titles: done}),
         document.getElementById("messages")
       );
     }
@@ -101,33 +115,45 @@ $(document).ready(function() {
     );
   }
 
-  displayAll();
-  displayTimers();
+  // sets the interval to call the displayTimers function to refresh the times
+  setInterval(function() {
+    var d1 = new Date();
+    $(".time").each(function() {
+      var d2 = new Date($(this).text());
+      var n = d2.getTime() - d1.getTime();
+      if (n < 0) {
+        alert("Timer for " + $(this).siblings("h2").text() + " is done");
+      }
+    });
+    displayTimers();
+  }, interval);
+
+  $("#addAccountButton").click(function() {
+    var modal = e(component.AccountModal, {key: "account", type: "account", header: "New Account"});
+    displayModal(modal, "#accountModal");
+  });
+
+  $("#switchAccountButton").click(function() {
+    var accounts = db.getAccounts();
+    var modal = e(component.SwitchAccountModal, {key: "switchAccount", type: "switchAccount", header: "Switch Accounts", accounts: accounts});
+    displayModal(modal, "#switchAccountModal");
+  });
 
   // click the add goal button
   $("#addGoalButton").click(function() {
-    displayModal("goal", "New Goal", requirements, "#goalModal");
+    var modal = e(component.GoalModal, {key: "goal", type: "goal", header: "New Goal", requirements: requirements});
+    displayModal(modal, "#goalModal");
   });
 
   // click the add timer button
   $("#addTimerButton").click(function() {
-    displayModal("timer", "New Timer", null, "#timerModal");
+    var modal = e(component.TimerModal, {key: "timer", type: "timer", header: "New Timer"});
+    displayModal(modal, "#timerModal");
   });
-
-  // displays modal for adding or editing a goal/timer
-  function displayModal(type, header, reqs, modalId, date, time, desc, title) {
-    var now = new Date().valueOf();
-    var modal = e(Modal, {key: now + type, type: type, header: header, requirements: reqs, date: date, time: time, desc: desc, title: title});
-    rd.render(
-      modal,
-      document.getElementById('modals')
-    );
-    $(modalId).addClass('is-active');
-  }
 
   // hides modal on a click outside of the modal or on the close modal button
   $(document).on("click", ".modal-background, .closeModal", function() {
-    $(".modal").removeClass('is-active');
+    clearReact('modals')
   });
 
   // function for handling certain key presses
@@ -147,40 +173,46 @@ $(document).ready(function() {
   });
 
   $(document).on("click", ".reqButton", function() {
-    if ($(this).hasClass("is-primary")) {
-      $(this).removeClass("is-primary");
+    if ($(this).hasClass("is-primary clicked")) {
+      $(this).removeClass("is-primary clicked");
     } else {
-      $(this).addClass("is-primary");
+      $(this).addClass("is-primary clicked");
+    }
+  });
+
+  $(document).on("click", "#accountSave", function() {
+    var formArray = $("#accountForm").serializeArray();
+    var name = formArray[0]["value"];
+    try {
+      db.addAccount(name);
+      account = db.getAccountMain();
+      displayAll();
+      displayTimers();
+      $(".modal").removeClass('is-active');
+    } catch (err) {
+      console.log(err);
+      // reset current account to be the main account
+      db.editAccount(accountName, 1);
     }
   });
 
   // adds the goal to the database
   $(document).on("click", "#goalSave", function() {
     var values = getGoalForm("#goalForm");
-    addToDatabase(values, displayAll, "#goalModal", "#skillText", add);
+    console.log(values);
+    addToDatabase(values, displayAll, "#goalModal", "#skillText", db.addGoal, account.ID);
   });
 
   // adds the timer to the database
   $(document).on("click", "#timerSave", function() {
     var values = getTimerForm("#timerForm");
-    addToDatabase(values, displayTimers, "#timerModal", "#timerTitle", addTimer);
+    addToDatabase(values, displayTimers, "#timerModal", "#timerTitle", db.addTimer, account.ID);
   });
-
-  // tries to add a timer or goal to the database, and dispays errors if unsuccessful
-  function addToDatabase(values, display, modalId, titleId, addItem) {
-    try {
-      addItem(values[0].toLowerCase().trim(), values[1], values[2]);
-      $(".modal").removeClass('is-active');
-      display();
-    }
-    catch (err) {
-      errorCatch(err, titleId, modalId)
-    }
-  }
 
   // shows edit goal form
   $(document).on("click", ".editButton", function() {
     // gets current values to pre-fill the form
+    console.log("Hello there")
     var title = $(this).parents(".goal").find(".title").text();
     var desc = $(this).parents(".goal").find(".desc").text();
     var reqs = [];
@@ -192,9 +224,10 @@ $(document).ready(function() {
     var currentReqs = [];
     currentTitles.forEach(function(req) {
       var check = reqs.includes(req.title) ? true : false;
-      currentReqs.push(e(Requirement, {key: req.title, value: req.title, checked: check}));
+      currentReqs.push(e(component.Requirement, {key: req.title, value: req.ID, checked: check, type: "checkbox", name: req.title, label: req.title}));
     });
-    displayModal("editGoal", title, currentReqs, "#editGoalModal", null, null, desc, title);
+    var modal = e(component.GoalModal, {key: "editGoal", type: "editGoal", header: "Edit Goal", requirements: currentReqs, title: title, desc: desc});
+    displayModal(modal, "#editGoalModal");
   });
 
   // shows the timer edit form
@@ -205,27 +238,87 @@ $(document).ready(function() {
     console.log("d: " + d + " date: " + date + " time: " + time);
     var title = $(this).parents(".timer").find(".title").text();
     var desc = $(this).parents(".timer").find(".desc").text();
-    displayModal("editTimer", title, null, "#editTimerModal", date, time, desc, title);
+    var modal = e(component.TimerModal, {key: "editTimer", type: "editTimer", header: "Edit Timer", title: title, desc: desc, date: date, time: time});
+    displayModal(modal, "#editTimerModal");
   });
-
 
   // edits the goal
   $(document).on("click", "#editGoalSave", function() {
     var values = getGoalForm("#editGoalForm");
-    editGoalTimer("#editGoalModal", values, editGoal, displayAll, "#skillText");
+    var id = db.getGoalID(values[0], account.ID);
+    console.log(id["ID"])
+    editGoalTimer("#editGoalModal", values, db.editGoal, displayAll, "#skillText", id["ID"]);
   });
 
   // edits timer
   $(document).on("click", "#editTimerSave", function() {
     var values = getTimerForm("#editTimerForm");
-    editGoalTimer("#editTimerModal", values, editTimer, displayTimers, "#timerTitle");
+    var id = db.getTimerID(values[0], account.ID);
+    console.log(id)
+    editGoalTimer("#editTimerModal", values, db.editTimer, displayTimers, "#timerTitle", id["ID"]);
   });
 
-  // function to edit either a goal or a timer
-  function editGoalTimer(modalId, values, edit, display, titleId) {
+  $(document).on("click", "#switchAccountSave", function() {
+    var formArray = $("#switchAccountForm").serializeArray();
+    var name = formArray[0]["value"];
+
+    $(".modal").removeClass('is-active');
+    // deselect old account
+    db.editAccount(account.name, 0);
+    accountName = name;
+    // sets the swapped account as main
+    db.editAccount(name, 1);
+    account = db.getAccountMain();
+    displayAll();
+    displayTimers();
+  })
+
+  // remove the current goal and all its children
+  $(document).on("click", '.doneButton', function() {
+    var parent = $(this).parents(".card").find(".title").text();
+    var deleteList = [parent];
+    $(this).parents(".card").find("li").each(function() {
+      deleteList.push($(this).text());
+    });
+    console.log(deleteList)
+    db.complete(parent, deleteList, account.ID);
+    displayAll();
+  });
+
+  // delete goal
+  $(document).on("click", ".deleteGoal", function() {
+    var value = $(this).parents(".goal").find(".title").text();
+    db.deleteGoal(value, account.ID);
+    displayAll();
+    // deleteGoalTimer("goals", "title", value, displayAll);
+  });
+
+  // delete timer
+  $(document).on("click", ".deleteTimer", function() {
+    var value = $(this).parents(".timer").find(".title").text();
+    db.deleteTimer(value, account.ID);
+    displayTimers();
+    // deleteGoalTimer("timers", "name", value, displayTimers);
+  });
+
+  $(document).on("click", ".closeMessage", function() {
+    clearReact('messages');
+  });
+
+  // tries to add a timer or goal to the database, and dispays errors if unsuccessful
+  // function addToDatabase(values, display, modalId, titleId, addItem, userID) {
+  //   var err = addItem(values[0].toLowerCase().trim(), values[1], values[2], userID);
+  //   if (err) {
+  //     errorCatch(err, titleId, modalId);
+  //   } else {
+  //     $(".modal").removeClass('is-active');
+  //     display();
+  //   }
+  // }
+
+  function addToDatabase(values, display, modalId, titleId, addItem, userID) {
     try {
-      var old = $(modalId).find(".modal-title").text();
-      edit(values[0], values[1], values[2], old);
+      addItem(values[0].toLowerCase().trim(), values[1], values[2], userID);
       $(".modal").removeClass('is-active');
       display();
     }
@@ -234,55 +327,52 @@ $(document).ready(function() {
     }
   }
 
-  // remove the current goal and all its children
-  $(document).on("click", '.doneButton', function() {
-    var parent = $(this).siblings(".title").text();
-    var reqs = [];
-    $(this).siblings(".reqList").find("li").each(function() {
-      reqs.push($(this).text());
-    });
-    complete(parent, reqs);
-    displayAll();
-  });
+  function clearReact(id) {
+    rd.render(
+      null,
+      document.getElementById(id)
+    );
+  }
 
-  // delete goal
-  $(document).on("click", ".deleteGoal", function() {
-    var value = $(this).parents(".goal").find(".title").text();
-    deleteGoalTimer("goals", "title", value, displayAll);
-  });
-
-  // delete timer
-  $(document).on("click", ".deleteTimer", function() {
-    var value = $(this).parents(".timer").find(".title").text();
-    deleteGoalTimer("timers", "name", value, displayTimers);
-  });
+  // displays modal for adding or editing a goal/timer
+  function displayModal(modal, id) {
+    rd.render(
+      modal,
+      document.getElementById('modals')
+    );
+    $(id).addClass('is-active');
+  }
 
   // function for deleting a goal/timer
   function deleteGoalTimer(table, name, value, display) {
     console.log(value);
-    del(value, table, name);
-    display();
+    // db.del(value, table, name);
+
   }
 
-  $(document).on("click", ".closeMessage", function() {
-    rd.render(
-      [],
-      document.getElementById("messages")
-    );
-  });
+  // function to edit either a goal or a timer
+  function editGoalTimer(modalId, values, edit, display, titleId, id) {
+    try {
+      console.log(values)
+      console.log(id)
+      edit(values[0], values[1], values[2], id, account.ID);
+      $(".modal").removeClass('is-active');
+      display();
+    }
+    catch (err) {
+      errorCatch(err, titleId, modalId)
+    }
+  }
 
-  // sets the interval to call the displayTimers function to refresh the times
-  setInterval(function() {
-    var d1 = new Date();
-    $(".time").each(function() {
-      var d2 = new Date($(this).text());
-      var n = d2.getTime() - d1.getTime();
-      if (n < 0) {
-        alert("Timer for " + $(this).siblings("h2").text() + " is done");
-      }
-    });
-    displayTimers();
-  }, interval);
+  // display errors on modal submit
+  function errorCatch(err, titleId, modalId) {
+    if (err.code == "SQLITE_CONSTRAINT_UNIQUE") {
+      $(titleId).addClass("is-danger");
+      $(modalId).find(".errors").text("That title is already in use.");
+    } else {
+      console.log(err);
+    }
+  }
 
   // gets the values from submitting a goal form
   function getGoalForm(id) {
@@ -291,7 +381,7 @@ $(document).ready(function() {
     var desc = formArray[1]["value"];
     var reqs = [];
     for (var i = 2; i < formArray.length; i++) {
-      reqs.push(formArray[i]["name"]);
+      reqs.push(formArray[i]["value"]);
     }
     return {
       0: title,
@@ -313,16 +403,14 @@ $(document).ready(function() {
       2: desc
     };
   }
-
-  // display errors on modal submit
-  function errorCatch(err, titleId, modalId) {
-    if (err.code == "SQLITE_CONSTRAINT_PRIMARYKEY") {
-      $(titleId).addClass("is-danger");
-      $(modalId).find(".errors").text("That title is already in use.");
-    } else {
-      console.log(err);
-    }
-  }
 });
 
 // TODO: package
+// make primary button color but not other buttons, lighter text for inner content, 16 font 1.5 line height, do spacing in multiples, confirm delete, less borders, better date selector, add saturation to greys
+// TODO: work on account
+// filter goals based on account, filter timers based on account, view goals/timers from all accounts, show the account name next to the goal/timer
+// TODO: error when adding account for the first time, edit goal doesn't work, add modal doesn't clear after submitting (use the clearReact function)
+// test title name the same on different accounts
+// move try catch to dbFunctions
+// switch account only one display
+// fix complete
