@@ -20,10 +20,6 @@ class Requirement extends React.Component {
 
   render() {
     return ([
-      // e('label', {key: this.props.value + "label", className: "checkLabel button", htmlFor: this.props.value, style: {backgroundColor: this.state.color}},
-      //   e("input", {key: this.props.value + "input", className: "checkReq", name: this.props.name, type: this.props.type, id: this.props.value, checked: this.state.checked, onChange: this.toggleChange}, null),
-      //   this.props.value
-      // )
       e("input", {key: this.props.value + "input", className: "checkReq", name: this.props.name, type: this.props.type, id: this.props.value + "ReqInput", defaultChecked: this.props.checked, value: this.props.value}, null),
       e('label', {key: this.props.value + "label", className: "checkLabel button", htmlFor: this.props.value + "ReqInput"}, this.props.label)
     ]);
@@ -80,11 +76,12 @@ class GoalModal extends React.Component {
       e('p', {className: "errors", key: "titleError"}, null),
       e('label', {htmlFor: "descText", key: "descTextLabel"}, "Description"),
       e('input', {type: "text", id: "descText", className: "input is-primary", key: "descTextInput", name: "desc", value: this.state.desc, onChange: this.handleChange.bind(this)}, null),
+      e('input', {type: "hidden", id: "oldTitle", key: "oldTitleInput", name: "oldTitle", value: this.props.title}, null),
       e('label', {key: "requireListLabel"}, "Requirements"),
       this.props.requirements
     ];
 
-    return e(Modal, {type: this.props.type, header: this.props.header, form: goalForm})
+    return e(Modal, {type: this.props.type, header: this.props.header, form: goalForm});
   }
 }
 
@@ -92,6 +89,7 @@ class Timer extends React.Component {
   render() {
     return (
       e('div', {className: 'card timer'},
+        e('div', {className: 'topColor', style: {backgroundImage: 'linear-gradient(' + this.props.gradient +  ')'}}, null),
         e('header', {className: 'card-header'},
           e('h2', {className: 'title is-uppercase is-size-5'}, this.props.title)
         ),
@@ -135,10 +133,11 @@ class TimerModal extends React.Component {
       e('label', {htmlFor: "timerTime", key: "timerTimeLabel"}, "Time"),
       e('input', {type: "time", id: "timerTime", name: "time", className: "input is-primary", key: "timerTimeInput", value: this.state.time, onChange: this.handleChange.bind(this)}, null),
       e('label', {htmlFor: "timerDesc", key: "timerDescLabel"}, "Description"),
-      e('input', {type: "text", id: "timerDesc", className: "input is-primary", key: "timerDescInput", name: "desc", value: this.state.desc, onChange: this.handleChange.bind(this)}, null)
+      e('input', {type: "text", id: "timerDesc", className: "input is-primary", key: "timerDescInput", name: "desc", value: this.state.desc, onChange: this.handleChange.bind(this)}, null),
+      e('input', {type: "hidden", id: "oldTitle", key: "oldTitleInput", name: "oldTitle", value: this.props.title}, null)
     ];
 
-    return e(Modal, {type: this.props.type, header: this.props.header, form: timerForm})
+    return e(Modal, {type: this.props.type, header: this.props.header, form: timerForm});
   }
 }
 
@@ -158,11 +157,16 @@ class AccountModal extends React.Component {
   render() {
     var accountForm = [
       e('label', {htmlFor: "accountName", key: "accountNameLabel"}, "Name"),
-      e('input', {type: "text", id: "accountName", name: "name", className: "input is-primary", key: "accountNameInput", value: this.state.title, onChange: this.handleChange.bind(this)}, null),
+      e('input', {type: "text", id: "accountName", name: "name", className: "input is-primary", key: "accountNameInput", value: this.state.name, onChange: this.handleChange.bind(this)}, null),
       e('p', {className: "errors", key: "titleError"}, null)
     ];
 
-    return e(Modal, {type: this.props.type, header: this.props.header, form: accountForm})
+    var deleteButton = null;
+    if (this.props.type == "editAccount") {
+      deleteButton = e('input', {key: "accountDeleteButton", id: "accountDeleteButton", type: "button", className: "button is-danger", value: "Delete Account"});
+    }
+
+    return e(Modal, {type: this.props.type, header: this.props.header, form: accountForm, button: deleteButton, first: this.props.first});
   }
 }
 
@@ -171,11 +175,11 @@ class SwitchAccountModal extends React.Component {
     var accountReqs = [];
     this.props.accounts.forEach(function(account) {
       accountReqs.push(
-        e(Requirement, {key: account.name, value: account.name, checked: account.main == 0 ? false : true, type: "radio", name: "account", label: account.name})
+        e(Requirement, {key: account.name, value: account.ID, checked: account.main == 0 ? false : true, type: "radio", name: "account", label: account.name})
       );
     });
 
-    return e(Modal, {type: this.props.type, header: this.props.header, form: accountReqs})
+    return e(Modal, {type: this.props.type, header: this.props.header, form: accountReqs});
   }
 }
 
@@ -216,9 +220,11 @@ class Message extends React.Component {
 
 class Modal extends React.Component {
   render() {
+    var backgroundId = this.props.first ? "firstVisit" : "backgroundDiv";
+
     return (
       e('div', {className: 'modal', id: this.props.type + "Modal"},
-        e('div', {className: 'modal-background'}, null),
+        e('div', {id: backgroundId, className: 'modal-background'}, null),
         e('div', {className: 'modal-card'},
           e('header', {className: 'modal-card-head'},
             e('h2', {className: "modal-title"}, this.props.header)
@@ -230,7 +236,8 @@ class Modal extends React.Component {
           ),
           e('footer', {className: 'modal-card-foot'},
             e('button', {id: this.props.type + "Save", className: "button is-success saveButton"}, "Save"),
-            e('button', {id: this.props.type + "Close", className: "button closeModal"}, "Close")
+            e('button', {id: this.props.type + "Close", className: "button closeModal", disabled: this.props.first}, "Close"),
+            this.props.button
           )
         ),
       )

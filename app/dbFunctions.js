@@ -1,39 +1,46 @@
 const Database = require('better-sqlite3');
 const db = new Database('goals.db');
 
-function addAccount(name) {
-  // sets the newest added account as the main account and sets main to false on the previous main account
-  removeMain();
-  const stmt = db.prepare("INSERT INTO accounts (name, main) VALUES (?, 1)");
-  stmt.run(name);
+// adds an account to the database
+function addAccount(name, userID) {
+  try {
+    // remove the "main" status from the previous main account
+    removeMain();
+    const stmt = db.prepare("INSERT INTO accounts (name, main) VALUES (?, 1)");
+    stmt.run(name);
+  }
+  catch (err) {
+    // switches back to the previous account on an error
+    switchAccount(userID);
+    return err;
+  }
 }
 
 // adds a goal to the database
 function addGoal(title, desc, reqs, userID) {
-  // try {
-  //   const stmt = db.prepare("INSERT INTO goals (title, desc, userID) VALUES (?, ?, ?)");
-  //   const info = stmt.run(title, desc, userID);
-  //   const parentID = info.lastInsertRowid;
-  //   const reqStmt = db.prepare("INSERT INTO reqs (parentID, childID, userID) VALUES (?, ?, ?)");
-  //   reqs.forEach(function(req) {
-  //     reqStmt.run(parentID, req, userID);
-  //   });
-  // } catch (err) {
-  //   return err;
-  // }
-  const stmt = db.prepare("INSERT INTO goals (title, desc, userID) VALUES (?, ?, ?)");
-  const info = stmt.run(title, desc, userID);
-  const parentID = info.lastInsertRowid;
-  const reqStmt = db.prepare("INSERT INTO reqs (parentID, childID, userID) VALUES (?, ?, ?)");
-  reqs.forEach(function(req) {
-    reqStmt.run(parentID, req, userID);
-  });
+  try {
+    const stmt = db.prepare("INSERT INTO goals (title, desc, userID) VALUES (?, ?, ?)");
+    const info = stmt.run(title, desc, userID);
+    const parentID = info.lastInsertRowid;
+    const reqStmt = db.prepare("INSERT INTO reqs (parentID, childID, userID) VALUES (?, ?, ?)");
+    reqs.forEach(function(req) {
+      reqStmt.run(parentID, req, userID);
+    });
+  }
+  catch (err) {
+    return err;
+  }
 }
 
 // adds a timer to the database
 function addTimer(title, date, desc, userID) {
-  const stmt = db.prepare("INSERT INTO timers (name, time, desc, done, userID) VALUES (?, ?, ?, ?, ?)");
-  stmt.run(title, date, desc, 0, userID);
+  try {
+    const stmt = db.prepare("INSERT INTO timers (name, time, desc, done, userID) VALUES (?, ?, ?, ?, ?)");
+    stmt.run(title, date, desc, 0, userID);
+  }
+  catch (err) {
+    return err;
+  }
 }
 
 // removes the given goal and each requirement associated with it
@@ -49,11 +56,16 @@ function create() {
   goals.run();
   const reqs = db.prepare("CREATE TABLE IF NOT EXISTS reqs (parentID INTEGER, childID INTEGER, userID INTEGER, FOREIGN KEY (parentID) REFERENCES goals(ID) ON DELETE CASCADE ON UPDATE CASCADE, FOREIGN KEY (childID) REFERENCES goals(ID) ON DELETE CASCADE ON UPDATE CASCADE, FOREIGN KEY (userID) REFERENCES accounts(ID) ON DELETE CASCADE ON UPDATE CASCADE, PRIMARY KEY (parentID, childID))");
   reqs.run();
-  const timers = db.prepare("CREATE TABLE IF NOT EXISTS timers (ID INTEGER PRIMARY KEY, name TEXT, time TEXT, desc TEXT, done INTEGER, userID INTEGER, FOREIGN KEY (userID) REFERENCES accounts(ID) ON DELETE CASCADE ON UPDATE CASCADE)");
+  const timers = db.prepare("CREATE TABLE IF NOT EXISTS timers (ID INTEGER PRIMARY KEY, name TEXT, time TEXT, desc TEXT, done INTEGER, userID INTEGER, FOREIGN KEY (userID) REFERENCES accounts(ID) ON DELETE CASCADE ON UPDATE CASCADE, UNIQUE (name, userID))");
   timers.run();
   const account = db.prepare("CREATE TABLE IF NOT EXISTS accounts (ID INTEGER PRIMARY KEY, name TEXT, main INTEGER, UNIQUE (name))");
   account.run();
   db.pragma("foreign_keys = ON");
+}
+
+function deleteAccount(id) {
+  const stmt = db.prepare("DELETE FROM accounts WHERE ID = (?)");
+  stmt.run(id);
 }
 
 function deleteGoal(title, id) {
@@ -66,30 +78,42 @@ function deleteTimer(name, id) {
   stmt.run(name, id);
 }
 
-function editAccount(name, main) {
-  if (main == 1) {
-    removeMain();
+function editAccount(name, userID) {
+  try {
+    const stmt = db.prepare("UPDATE accounts SET name = (?) WHERE ID = (?)");
+    stmt.run(name, userID);
   }
-  const stmt = db.prepare("UPDATE accounts SET name = (?), main = (?) WHERE name = (?)");
-  stmt.run(name, main, name);
+  catch (err) {
+    return err;
+  }
 }
 
 // updates the given columns in a goal
 function editGoal(title, desc, reqs, id, userID) {
-  const updateStmt = db.prepare("UPDATE goals SET desc = (?), title = (?) WHERE ID = (?)");
-  updateStmt.run(desc, title, id);
-  const delStmt = db.prepare("DELETE FROM reqs WHERE parentID = (?)");
-  delStmt.run(id);
-  const insertStmt = db.prepare("INSERT INTO reqs VALUES (?, ?, ?)");
-  reqs.forEach(function(req) {
-    insertStmt.run(id, req, userID);
-  });
+  try {
+    const updateStmt = db.prepare("UPDATE goals SET desc = (?), title = (?) WHERE ID = (?)");
+    updateStmt.run(desc, title, id);
+    const delStmt = db.prepare("DELETE FROM reqs WHERE parentID = (?)");
+    delStmt.run(id);
+    const insertStmt = db.prepare("INSERT INTO reqs VALUES (?, ?, ?)");
+    reqs.forEach(function(req) {
+      insertStmt.run(id, req, userID);
+    });
+  }
+  catch (err) {
+    return err;
+  }
 }
 
 // edits the time field of a timer
 function editTimer(title, time, desc, id) {
-  const stmt = db.prepare("UPDATE timers SET name = (?), time = (?), desc = (?), done = 0 WHERE ID == (?)");
-  stmt.run(title, time, desc, id);
+  try {
+    const stmt = db.prepare("UPDATE timers SET name = (?), time = (?), desc = (?), done = 0 WHERE ID == (?)");
+    stmt.run(title, time, desc, id);
+  }
+  catch (err) {
+    return err;
+  }
 }
 
 function getAccountMain() {
@@ -117,14 +141,13 @@ function getReqs(userID) {
 }
 
 function getTimerID(name, userID) {
-  console.log(name + " " + userID)
   const stmt = db.prepare("SELECT ID FROM timers WHERE name = (?) AND userID = (?)");
   const id = stmt.get(name, userID);
   return id;
 }
 
-function getTimers() {
-  return getAll("SELECT * FROM timers");
+function getTimers(userID) {
+  return getAll("SELECT * FROM timers WHERE userID = (?) ORDER BY name ASC", userID);
 }
 
 function getAll(sql, where) {
@@ -141,9 +164,15 @@ function removeMain() {
   stmt.run();
 }
 
+function switchAccount(userID) {
+  removeMain();
+  const stmt = db.prepare("UPDATE accounts SET main = 1 WHERE ID = (?)");
+  stmt.run(userID);
+}
+
 function timerDone(name) {
   const stmt = db.prepare("UPDATE timers SET done = 1 WHERE name == (?)");
   stmt.run(name);
 }
 
-module.exports = {addGoal: addGoal, addAccount: addAccount, deleteGoal: deleteGoal, deleteTimer: deleteTimer, complete: complete, addTimer: addTimer, editAccount: editAccount, editTimer: editTimer, create: create, editGoal: editGoal, getAccountMain: getAccountMain, getAccounts: getAccounts, getGoalID: getGoalID, getGoals: getGoals, getReqs: getReqs, getTimerID: getTimerID, getTimers: getTimers, timerDone: timerDone};
+module.exports = {addGoal: addGoal, addAccount: addAccount, deleteAccount: deleteAccount, deleteGoal: deleteGoal, deleteTimer: deleteTimer, complete: complete, addTimer: addTimer, editAccount: editAccount, editTimer: editTimer, create: create, editGoal: editGoal, getAccountMain: getAccountMain, getAccounts: getAccounts, getGoalID: getGoalID, getGoals: getGoals, getReqs: getReqs, getTimerID: getTimerID, getTimers: getTimers, switchAccount: switchAccount, timerDone: timerDone};
