@@ -1,4 +1,6 @@
 const electron = require('electron');
+const path = require('path');
+const iconPath = path.join(__dirname, "src", "icon.png");
 
 const app = electron.app;
 
@@ -21,14 +23,14 @@ app.on('ready', function () {
       nodeIntegration: true,
       enableRemoteModule: false
     },
-    icon: 'src/Gnome_child_chathead.png'
+    icon: iconPath
   });
 
   // and load the index.html of the app.
   mainWindow.loadURL('file://' + __dirname + '/index.html');
 
   // starts with dev tools open
-  mainWindow.webContents.openDevTools();
+  // mainWindow.webContents.openDevTools();
 
   // Emitted when the window is closed.
   mainWindow.on('closed', function () {
